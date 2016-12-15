@@ -9,9 +9,9 @@ namespace _8XDcs
 {
     class Detokenizer
     {
-        public static FileStream dest;
+        //public static FileStream dest;
 
-        private static string path = @" ";
+        private static string path = "";
         public static Dictionary<UInt32, string> Tokens = new Dictionary<UInt32, string>()
         {
             {0x00, " "},
@@ -247,9 +247,8 @@ namespace _8XDcs
             // Check the header
             byte[] header = new byte[8];
             Array.Copy(filebuf, 0, header, 0, 8);
-            Console.WriteLine(BytesArrayToString(header));
             // Check if the header is correct.
-            if(header == headerTemplate) {
+            if (header.SequenceEqual(headerTemplate)) {
                 return filebuf;
             }
 
@@ -258,33 +257,18 @@ namespace _8XDcs
 
         public static void OpenDest()
         {
-            FileStream dest = File.Open(RandomString(5) + ".txt", FileMode.Create);
+            path = RandomString(5) + ".txt";
+            FileStream dest = File.Open(path, FileMode.Create);
             Console.WriteLine("Created new file for output.");
-        }
-        public static void OpenDest(string p)
-        {
-            p = path;
-            if (!File.Exists(p))
-            {
-                dest = File.Open(RandomString(5) + ".txt", FileMode.Create);
-                return;
-            }
-            Console.WriteLine("That file path didn't exist, but don't worry, I made it for you. :)");
-            dest = File.Open(p, FileMode.Open);
-
-            return;
+            dest.Close();
         }
 
         private static void AppendToSource(string t)
         {
-            if (dest == null)
-            {
-                return;
-            }
-
             using (StreamWriter pen = File.AppendText(path))
             {
                 pen.WriteLine(t);
+                pen.Close();
             }
         }
 
