@@ -249,6 +249,7 @@ namespace _8XDcs
             return filebuf;
         }
 
+
         public static string GetDataSection(byte[] fb)
         {
             IEnumerable<byte> dataSection = fb.Take(75); // Data section begins on 75th byte of the file
