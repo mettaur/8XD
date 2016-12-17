@@ -26,14 +26,17 @@ namespace _8XDcs
             Console.WriteLine("8XD Version 1.0");
             Console.WriteLine("(c) Lambda 2016");
 
-            byte[] buffer = Detokenizer.Open(path);
+            IEnumerable<byte> buffer = Detokenizer.Open(path);
             if (buffer == null)
             {
                 Console.WriteLine("Error: Buffer did not load.");
                 return;
             }
+
+            //Console.WriteLine(Detokenizer.GetDataSection(buffer));
+
             Detokenizer.OpenDest();
-            Detokenizer.Detokenize(buffer);
+            Detokenizer.Detokenize(buffer.Skip(74).ToArray());
 
             Console.ReadKey();
         }

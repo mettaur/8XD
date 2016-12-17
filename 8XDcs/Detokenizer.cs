@@ -233,10 +233,9 @@ namespace _8XDcs
             {0xFF, "LinReg(ax+b)"}
         };
 
-        public static byte[] Open(string path)
+        public static IEnumerable<byte> Open(string path)
         {
-            byte[] headerTemplate = { 0x2A, 0x2A, 0x54, 0x49, 0x38, 0x33, 0x46, 0x2A };
-            byte[] filebuf = File.ReadAllBytes(path);
+            IEnumerable<byte> filebuf = File.ReadAllBytes(path);
 
             if (filebuf == null)
             {
@@ -245,14 +244,15 @@ namespace _8XDcs
             }
 
             // Check the header
-            byte[] header = new byte[8];
-            Array.Copy(filebuf, 0, header, 0, 8);
-            // Check if the header is correct.
-            if (header.SequenceEqual(headerTemplate)) {
-                return filebuf;
-            }
+            IEnumerable<byte> header = filebuf.Take(8);
 
-            return null;
+            return filebuf;
+        }
+
+        public static string GetDataSection(byte[] fb)
+        {
+            IEnumerable<byte> dataSection = fb.Take(75); // Data section begins on 75th byte of the file
+            return BytesArrayToString(dataSection.ToArray());
         }
 
         public static void OpenDest()
@@ -267,7 +267,7 @@ namespace _8XDcs
         {
             using (StreamWriter pen = File.AppendText(path))
             {
-                pen.WriteLine(t);
+                pen.Write(t);
                 pen.Close();
             }
         }
