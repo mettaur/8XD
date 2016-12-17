@@ -37,8 +37,6 @@ namespace _8XDcs
 
             Detokenizer.OpenDest();
             Detokenizer.Detokenize(buffer.Skip(74).ToArray());
-
-            Console.ReadKey();
         }
     }
 }
