@@ -19,23 +19,35 @@ namespace _8XDcs
             Console.OutputEncoding = Encoding.UTF8;
             if (args.Length == 0)
             {
-                Console.WriteLine("Usage: 8XD <file> <dest>");
+                Console.WriteLine("Usage: 8XD <file> <dest> -c");
                 return;
             }
+
             string path = args[0];
+
+            if (!File.Exists(path))
+            {
+                Console.WriteLine("The 8XP program path supplied does not exist.");
+                return;
+            }
+
             Console.WriteLine("8XD Version 1.0");
             Console.WriteLine("(c) Lambda 2016");
 
             IEnumerable<byte> buffer = Detokenizer.Open(path);
             if (buffer == null)
             {
-                Console.WriteLine("Error: Buffer did not load.");
                 return;
             }
 
-            //Console.WriteLine(Detokenizer.GetDataSection(buffer));
-
-            Detokenizer.OpenDest();
+            if(args.Length < 2)
+            {
+                Detokenizer.OpenDest();
+            } else
+            {
+                Detokenizer.OpenDest(args[1]);
+            }
+            
             Detokenizer.Detokenize(buffer.Skip(74).ToArray());
         }
     }

@@ -3,15 +3,13 @@ using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace _8XDcs
 {
     class Detokenizer
     {
-        //public static FileStream dest;
-
         private static string path = "";
+        private static int size = 0;
         public static Dictionary<UInt32, string> Tokens = new Dictionary<UInt32, string>()
         {
             {0x00 , ""},
@@ -263,42 +261,18 @@ namespace _8XDcs
         public static IEnumerable<byte> Open(string path)
         {
             IEnumerable<byte> filebuf = File.ReadAllBytes(path);
+            IEnumerable<byte> correct = new byte[] { 0x2A, 0x2A, 0x54, 0x49, 0x38, 0x33, 0x46, 0x2A, 0x1A, 0x0A, 0x00 };
+            IEnumerable<byte> header = filebuf.Take(11);
+            int tsize = (filebuf.ElementAt(73) + filebuf.ElementAt(74));
 
-            if (filebuf == null)
+            if (filebuf == null || !header.SequenceEqual(correct))
             {
-                Console.WriteLine("That file does not exist or was spelled incorrectly.");
+                Console.WriteLine("Error: File either does not exist or is not an TI-8X program.");
                 return null;
             }
 
-            // Check the header
-            IEnumerable<byte> header = filebuf.Take(8);
-
-
+            size = tsize;
             return filebuf;
-        }
-
-
-        public static string GetDataSection(byte[] fb)
-        {
-            IEnumerable<byte> dataSection = fb.Take(75); // Data section begins on 75th byte of the file
-            return BytesArrayToString(dataSection.ToArray());
-        }
-
-        public static void OpenDest()
-        {
-            path = RandomString(5) + ".txt";
-            FileStream dest = File.Open(path, FileMode.Create);
-            Console.WriteLine("Created new file for output.");
-            dest.Close();
-        }
-
-        private static void AppendToSource(string t)
-        {
-            using (StreamWriter pen = File.AppendText(path))
-            {
-                pen.Write(t);
-                pen.Close();
-            }
         }
 
         private static Random random = new Random();
@@ -309,635 +283,671 @@ namespace _8XDcs
               .Select(s => s[random.Next(s.Length)]).ToArray());
         }
 
-        public static void Detokenize(byte[] tokens)
+        public static void OpenDest(string p = null)
         {
-            if (tokens == null)
+            FileStream dest;
+            if (p == null || !File.Exists(p))
+            {
+                Console.WriteLine("Destination path was either not set or doesn't exist.");
+                Console.Write("Would you like to create this file? (y/n*): ");
+                var ans = Console.ReadKey();
+                if (ans.Key == ConsoleKey.Y | ans.Key == ConsoleKey.Enter)
+                {
+                    if (p == null)
+                    {
+                        p = (RandomString(5) + ".txt");
+                        path = p;
+                        dest = File.Open(p, FileMode.Create);
+                        Console.WriteLine("Created new file for output.");
+                        dest.Close();
+                        return;
+                    }
+                    p += ".txt";
+                    path = p;
+                    dest = File.Open(p, FileMode.Create);
+                    Console.WriteLine("\nCreated new file for output.");
+                    dest.Close();
+                    return;
+                }
+                else
+                {
+                    return;
+                }
+            }
+            dest = File.Open(p, FileMode.Open);
+            dest.Close();
+            return;
+        }
+
+        public static void Detokenize(byte[] buffer)
+        {
+            if (buffer == null)
             {
                 Console.WriteLine("Error: Buffer Empty");
                 return;
             }
 
-            for (int i = 0; i < tokens.Length; i++)
+            for (int i = 0; i < (buffer.Length - 2); i++)
             {
-                switch (tokens[i])
+                switch (buffer[i])
                 {
                     case 0xEF:
-                        switch (tokens[i++])
+                        switch (buffer[i++])
                         {
-                            case (0x00): AppendToSource("setDate("); break;
-                            case (0x01): AppendToSource("setTime("); break;
-                            case (0x02): AppendToSource("checkTmr("); break;
-                            case (0x03): AppendToSource("setDtFmt("); break;
-                            case (0x04): AppendToSource("setTmFmt("); break;
-                            case (0x05): AppendToSource("timeCnv("); break;
-                            case (0x06): AppendToSource("dayOfWk("); break;
-                            case (0x07): AppendToSource("getDtStr"); break;
-                            case (0x08): AppendToSource("getTmStr("); break;
-                            case (0x09): AppendToSource("getDate"); break;
-                            case (0x0A): AppendToSource("getTime"); break;
-                            case (0x0B): AppendToSource("startTmr"); break;
-                            case (0x0C): AppendToSource("getDtFmt"); break;
-                            case (0x0D): AppendToSource("getTmFmt"); break;
-                            case (0x0E): AppendToSource("isClockOn"); break;
-                            case (0x0F): AppendToSource("ClockOff"); break;
-                            case (0x10): AppendToSource("ClockOn"); break;
-                            case (0x11): AppendToSource("OpenLib("); break;
-                            case (0x12): AppendToSource("ExecLib"); break;
-                            case (0x13): AppendToSource("invT("); break;
-                            case (0x14): AppendToSource("χ²GOF-Test("); break;
-                            case (0x15): AppendToSource("LinRegTInt "); break;
-                            case (0x16): AppendToSource("Manual-Fit "); break;
-                            case (0x17): AppendToSource("ZQuadrant1"); break;
-                            case (0x18): AppendToSource("ZFrac1/2"); break;
-                            case (0x19): AppendToSource("ZFrac1/3"); break;
-                            case (0x1A): AppendToSource("ZFrac1/4"); break;
-                            case (0x1B): AppendToSource("ZFrac1/5"); break;
-                            case (0x1C): AppendToSource("ZFrac1/8"); break;
-                            case (0x1D): AppendToSource("ZFrac1/10"); break;
-                            case (0x1E): AppendToSource("mathprintbox"); break;
-                            case (0x2E): AppendToSource("⁄"); break;
-                            case (0x2F): AppendToSource("ᵤ"); break;
-                            case (0x30): AppendToSource("►n⁄d◄►Un⁄d"); break;
-                            case (0x31): AppendToSource("►F◄►D"); break;
-                            case (0x32): AppendToSource("remainder("); break;
-                            case (0x33): AppendToSource("Σ("); break;
-                            case (0x34): AppendToSource("logBASE("); break;
-                            case (0x35): AppendToSource("randIntNoRep("); break;
-                            case (0x37): AppendToSource("[MATHPRINT]"); break;
-                            case (0x38): AppendToSource("[CLASSIC]"); break;
-                            case (0x39): AppendToSource("n⁄d"); break;
-                            case (0x3A): AppendToSource("Un⁄d"); break;
-                            case (0x3B): AppendToSource("[AUTO]"); break;
-                            case (0x3C): AppendToSource("[DEC]"); break;
-                            case (0x3D): AppendToSource("[FRAC]"); break;
-                            case (0x41): AppendToSource("BLUE"); break;
-                            case (0x42): AppendToSource("RED"); break;
-                            case (0x43): AppendToSource("BLACK"); break;
-                            case (0x44): AppendToSource("MAGENTA"); break;
-                            case (0x45): AppendToSource("GREEN"); break;
-                            case (0x46): AppendToSource("ORANGE"); break;
-                            case (0x47): AppendToSource("BROWN"); break;
-                            case (0x48): AppendToSource("NAVY"); break;
-                            case (0x49): AppendToSource("LTBLUE"); break;
-                            case (0x4A): AppendToSource("YELLOW"); break;
-                            case (0x4B): AppendToSource("WHITE"); break;
-                            case (0x4C): AppendToSource("LTGREY"); break;
-                            case (0x4D): AppendToSource("MEDGREY"); break;
-                            case (0x4E): AppendToSource("GREY"); break;
-                            case (0x4F): AppendToSource("DARKGREY"); break;
-                            case (0x5A): AppendToSource("GridLine "); break;
-                            case (0x5B): AppendToSource("BackgroundOn "); break;
-                            case (0x6A): AppendToSource("DetectAsymOn"); break;
-                            case (0x6B): AppendToSource("DetectAsymOff"); break;
-                            case (0x64): AppendToSource("BackgroundOff"); break;
-                            case (0x65): AppendToSource("GraphColor("); break;
-                            case (0x67): AppendToSource("TextColor("); break;
-                            case (0x68): AppendToSource("Asm84CPrgm"); break;
-                            case (0x6C): AppendToSource("BorderColor "); break;
-                            case (0x73): AppendToSource("tinydotplot"); break;
-                            case (0x74): AppendToSource("Thin"); break;
-                            case (0x75): AppendToSource("Dot-Thin"); break;
+                            case (0x00): File.AppendAllText(path, "setDate(", Encoding.UTF8); break;
+                            case (0x01): File.AppendAllText(path, "setTime(", Encoding.UTF8); break;
+                            case (0x02): File.AppendAllText(path, "checkTmr(", Encoding.UTF8); break;
+                            case (0x03): File.AppendAllText(path, "setDtFmt(", Encoding.UTF8); break;
+                            case (0x04): File.AppendAllText(path, "setTmFmt(", Encoding.UTF8); break;
+                            case (0x05): File.AppendAllText(path, "timeCnv(", Encoding.UTF8); break;
+                            case (0x06): File.AppendAllText(path, "dayOfWk(", Encoding.UTF8); break;
+                            case (0x07): File.AppendAllText(path, "getDtStr", Encoding.UTF8); break;
+                            case (0x08): File.AppendAllText(path, "getTmStr(", Encoding.UTF8); break;
+                            case (0x09): File.AppendAllText(path, "getDate", Encoding.UTF8); break;
+                            case (0x0A): File.AppendAllText(path, "getTime", Encoding.UTF8); break;
+                            case (0x0B): File.AppendAllText(path, "startTmr", Encoding.UTF8); break;
+                            case (0x0C): File.AppendAllText(path, "getDtFmt", Encoding.UTF8); break;
+                            case (0x0D): File.AppendAllText(path, "getTmFmt", Encoding.UTF8); break;
+                            case (0x0E): File.AppendAllText(path, "isClockOn", Encoding.UTF8); break;
+                            case (0x0F): File.AppendAllText(path, "ClockOff", Encoding.UTF8); break;
+                            case (0x10): File.AppendAllText(path, "ClockOn", Encoding.UTF8); break;
+                            case (0x11): File.AppendAllText(path, "OpenLib(", Encoding.UTF8); break;
+                            case (0x12): File.AppendAllText(path, "ExecLib", Encoding.UTF8); break;
+                            case (0x13): File.AppendAllText(path, "invT(", Encoding.UTF8); break;
+                            case (0x14): File.AppendAllText(path, "χ²GOF-Test(", Encoding.UTF8); break;
+                            case (0x15): File.AppendAllText(path, "LinRegTInt ", Encoding.UTF8); break;
+                            case (0x16): File.AppendAllText(path, "Manual-Fit ", Encoding.UTF8); break;
+                            case (0x17): File.AppendAllText(path, "ZQuadrant1", Encoding.UTF8); break;
+                            case (0x18): File.AppendAllText(path, "ZFrac1/2", Encoding.UTF8); break;
+                            case (0x19): File.AppendAllText(path, "ZFrac1/3", Encoding.UTF8); break;
+                            case (0x1A): File.AppendAllText(path, "ZFrac1/4", Encoding.UTF8); break;
+                            case (0x1B): File.AppendAllText(path, "ZFrac1/5", Encoding.UTF8); break;
+                            case (0x1C): File.AppendAllText(path, "ZFrac1/8", Encoding.UTF8); break;
+                            case (0x1D): File.AppendAllText(path, "ZFrac1/10", Encoding.UTF8); break;
+                            case (0x1E): File.AppendAllText(path, "mathprintbox", Encoding.UTF8); break;
+                            case (0x2E): File.AppendAllText(path, "⁄", Encoding.UTF8); break;
+                            case (0x2F): File.AppendAllText(path, "ᵤ", Encoding.UTF8); break;
+                            case (0x30): File.AppendAllText(path, "►n⁄d◄►Un⁄d", Encoding.UTF8); break;
+                            case (0x31): File.AppendAllText(path, "►F◄►D", Encoding.UTF8); break;
+                            case (0x32): File.AppendAllText(path, "remainder(", Encoding.UTF8); break;
+                            case (0x33): File.AppendAllText(path, "Σ(", Encoding.UTF8); break;
+                            case (0x34): File.AppendAllText(path, "logBASE(", Encoding.UTF8); break;
+                            case (0x35): File.AppendAllText(path, "randIntNoRep(", Encoding.UTF8); break;
+                            case (0x37): File.AppendAllText(path, "[MATHPRINT]", Encoding.UTF8); break;
+                            case (0x38): File.AppendAllText(path, "[CLASSIC]", Encoding.UTF8); break;
+                            case (0x39): File.AppendAllText(path, "n⁄d", Encoding.UTF8); break;
+                            case (0x3A): File.AppendAllText(path, "Un⁄d", Encoding.UTF8); break;
+                            case (0x3B): File.AppendAllText(path, "[AUTO]", Encoding.UTF8); break;
+                            case (0x3C): File.AppendAllText(path, "[DEC]", Encoding.UTF8); break;
+                            case (0x3D): File.AppendAllText(path, "[FRAC]", Encoding.UTF8); break;
+                            case (0x41): File.AppendAllText(path, "BLUE", Encoding.UTF8); break;
+                            case (0x42): File.AppendAllText(path, "RED", Encoding.UTF8); break;
+                            case (0x43): File.AppendAllText(path, "BLACK", Encoding.UTF8); break;
+                            case (0x44): File.AppendAllText(path, "MAGENTA", Encoding.UTF8); break;
+                            case (0x45): File.AppendAllText(path, "GREEN", Encoding.UTF8); break;
+                            case (0x46): File.AppendAllText(path, "ORANGE", Encoding.UTF8); break;
+                            case (0x47): File.AppendAllText(path, "BROWN", Encoding.UTF8); break;
+                            case (0x48): File.AppendAllText(path, "NAVY", Encoding.UTF8); break;
+                            case (0x49): File.AppendAllText(path, "LTBLUE", Encoding.UTF8); break;
+                            case (0x4A): File.AppendAllText(path, "YELLOW", Encoding.UTF8); break;
+                            case (0x4B): File.AppendAllText(path, "WHITE", Encoding.UTF8); break;
+                            case (0x4C): File.AppendAllText(path, "LTGREY", Encoding.UTF8); break;
+                            case (0x4D): File.AppendAllText(path, "MEDGREY", Encoding.UTF8); break;
+                            case (0x4E): File.AppendAllText(path, "GREY", Encoding.UTF8); break;
+                            case (0x4F): File.AppendAllText(path, "DARKGREY", Encoding.UTF8); break;
+                            case (0x5A): File.AppendAllText(path, "GridLine ", Encoding.UTF8); break;
+                            case (0x5B): File.AppendAllText(path, "BackgroundOn ", Encoding.UTF8); break;
+                            case (0x6A): File.AppendAllText(path, "DetectAsymOn", Encoding.UTF8); break;
+                            case (0x6B): File.AppendAllText(path, "DetectAsymOff", Encoding.UTF8); break;
+                            case (0x64): File.AppendAllText(path, "BackgroundOff", Encoding.UTF8); break;
+                            case (0x65): File.AppendAllText(path, "GraphColor(", Encoding.UTF8); break;
+                            case (0x67): File.AppendAllText(path, "TextColor(", Encoding.UTF8); break;
+                            case (0x68): File.AppendAllText(path, "Asm84CPrgm", Encoding.UTF8); break;
+                            case (0x6C): File.AppendAllText(path, "BorderColor ", Encoding.UTF8); break;
+                            case (0x73): File.AppendAllText(path, "tinydotplot", Encoding.UTF8); break;
+                            case (0x74): File.AppendAllText(path, "Thin", Encoding.UTF8); break;
+                            case (0x75): File.AppendAllText(path, "Dot-Thin", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token."); break;
+                                Console.WriteLine("Error Decompiling: Invalid token.", Encoding.UTF8); break;
                         }
                         break;
 
                     case 0xAA:
-                        switch (tokens[i++])
+                        switch (buffer[i++])
                         {
-                            case (0x00): AppendToSource("Str1"); break;
-                            case (0x01): AppendToSource("Str2"); break;
-                            case (0x02): AppendToSource("Str3"); break;
-                            case (0x03): AppendToSource("Str4"); break;
-                            case (0x04): AppendToSource("Str5"); break;
-                            case (0x05): AppendToSource("Str6"); break;
-                            case (0x06): AppendToSource("Str7"); break;
-                            case (0x07): AppendToSource("Str8"); break;
-                            case (0x08): AppendToSource("Str9"); break;
-                            case (0x09): AppendToSource("Str0"); break;
+                            case (0x00): File.AppendAllText(path, "Str1", Encoding.UTF8); break;
+                            case (0x01): File.AppendAllText(path, "Str2", Encoding.UTF8); break;
+                            case (0x02): File.AppendAllText(path, "Str3", Encoding.UTF8); break;
+                            case (0x03): File.AppendAllText(path, "Str4", Encoding.UTF8); break;
+                            case (0x04): File.AppendAllText(path, "Str5", Encoding.UTF8); break;
+                            case (0x05): File.AppendAllText(path, "Str6", Encoding.UTF8); break;
+                            case (0x06): File.AppendAllText(path, "Str7", Encoding.UTF8); break;
+                            case (0x07): File.AppendAllText(path, "Str8", Encoding.UTF8); break;
+                            case (0x08): File.AppendAllText(path, "Str9", Encoding.UTF8); break;
+                            case (0x09): File.AppendAllText(path, "Str0", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token."); break;
+                                Console.WriteLine("Error Decompiling: Invalid token.", Encoding.UTF8); break;
                         }
                         break;
                     case 0xBB:
-                        switch (tokens[i++])
+                        switch (buffer[i++])
                         {
-                            case (0x00): AppendToSource("npv("); break;
-                            case (0x01): AppendToSource("irr("); break;
-                            case (0x02): AppendToSource("bal("); break;
-                            case (0x03): AppendToSource("ΣPrn("); break;
-                            case (0x04): AppendToSource("ΣInt("); break;
-                            case (0x05): AppendToSource("►Nom("); break;
-                            case (0x06): AppendToSource("►Eff("); break;
-                            case (0x07): AppendToSource("dbd("); break;
-                            case (0x08): AppendToSource("lcm("); break;
-                            case (0x09): AppendToSource("gcd("); break;
-                            case (0x0A): AppendToSource("randInt("); break;
-                            case (0x0B): AppendToSource("randBin("); break;
-                            case (0x0C): AppendToSource("sub("); break;
-                            case (0x0D): AppendToSource("stdDev("); break;
-                            case (0x0E): AppendToSource("variance("); break;
-                            case (0x0F): AppendToSource("inString("); break;
-                            case (0x10): AppendToSource("normalcdf("); break;
-                            case (0x11): AppendToSource("invNorm("); break;
-                            case (0x12): AppendToSource("tcdf("); break;
-                            case (0x13): AppendToSource("χ²cdf("); break;
-                            case (0x14): AppendToSource("Fcdf("); break;
-                            case (0x15): AppendToSource("binompdf("); break;
-                            case (0x16): AppendToSource("binomcdf("); break;
-                            case (0x17): AppendToSource("poissonpdf("); break;
-                            case (0x18): AppendToSource("poissoncdf("); break;
-                            case (0x19): AppendToSource("geometpdf("); break;
-                            case (0x1A): AppendToSource("geometcdf("); break;
-                            case (0x1B): AppendToSource("normalpdf("); break;
-                            case (0x1C): AppendToSource("tpdf("); break;
-                            case (0x1D): AppendToSource("χ²pdf("); break;
-                            case (0x1E): AppendToSource("Fpdf("); break;
-                            case (0x1F): AppendToSource("randNorm("); break;
-                            case (0x20): AppendToSource("tvm_Pmt"); break;
-                            case (0x21): AppendToSource("tvm_I%"); break;
-                            case (0x22): AppendToSource("tvm_PV"); break;
-                            case (0x23): AppendToSource("tvm_N"); break;
-                            case (0x24): AppendToSource("tvm_FV"); break;
-                            case (0x25): AppendToSource("conj("); break;
-                            case (0x26): AppendToSource("real("); break;
-                            case (0x27): AppendToSource("imag("); break;
-                            case (0x28): AppendToSource("angle("); break;
-                            case (0x29): AppendToSource("cumSum("); break;
-                            case (0x2A): AppendToSource("expr("); break;
-                            case (0x2B): AppendToSource("length("); break;
-                            case (0x2C): AppendToSource("DeltaList("); break;
-                            case (0x2D): AppendToSource("ref("); break;
-                            case (0x2E): AppendToSource("rref("); break;
-                            case (0x2F): AppendToSource("►Rect"); break;
-                            case (0x30): AppendToSource("►Polar"); break;
-                            case (0x31): AppendToSource("[e]"); break;
-                            case (0x32): AppendToSource("SinReg "); break;
-                            case (0x33): AppendToSource("Logistic "); break;
-                            case (0x34): AppendToSource("LinRegTTest "); break;
-                            case (0x35): AppendToSource("ShadeNorm("); break;
-                            case (0x36): AppendToSource("Shade_t("); break;
-                            case (0x37): AppendToSource("Shadeχ²("); break;
-                            case (0x38): AppendToSource("ShadeF("); break;
-                            case (0x39): AppendToSource("Matr►list("); break;
-                            case (0x3A): AppendToSource("List►matr("); break;
-                            case (0x3B): AppendToSource("Z-Test("); break;
-                            case (0x3C): AppendToSource("T-Test "); break;
-                            case (0x3D): AppendToSource("2-SampZTest("); break;
-                            case (0x3E): AppendToSource("1-PropZTest("); break;
-                            case (0x3F): AppendToSource("2-PropZTest("); break;
-                            case (0x40): AppendToSource("χ²-Test("); break;
-                            case (0x41): AppendToSource("ZInterval"); break;
-                            case (0x42): AppendToSource("2-SampZInt("); break;
-                            case (0x43): AppendToSource("1-PropZInt("); break;
-                            case (0x44): AppendToSource("2-PropZInt("); break;
-                            case (0x45): AppendToSource("GraphStyle("); break;
-                            case (0x46): AppendToSource("2-SampTTest "); break;
-                            case (0x47): AppendToSource("2-SampFTest "); break;
-                            case (0x48): AppendToSource("TInterval "); break;
-                            case (0x49): AppendToSource("2-SampTInt "); break;
-                            case (0x4A): AppendToSource("SetUpEditor "); break;
-                            case (0x4B): AppendToSource("Pmt_End"); break;
-                            case (0x4C): AppendToSource("Pmt_Bgn"); break;
-                            case (0x4D): AppendToSource("Real"); break;
-                            case (0x4E): AppendToSource("re^θi"); break;
-                            case (0x4F): AppendToSource("a+bi"); break;
-                            case (0x50): AppendToSource("ExprOn"); break;
-                            case (0x51): AppendToSource("ExprOff"); break;
-                            case (0x52): AppendToSource("ClrAllLists"); break;
-                            case (0x53): AppendToSource("GetCalc("); break;
-                            case (0x54): AppendToSource("DelVar "); break;
-                            case (0x55): AppendToSource("Equ►String("); break;
-                            case (0x56): AppendToSource("String►Equ("); break;
-                            case (0x57): AppendToSource("Clear Entries"); break;
-                            case (0x58): AppendToSource("Select("); break;
-                            case (0x59): AppendToSource("ANOVA("); break;
-                            case (0x5A): AppendToSource("ModBoxPlot"); break;
-                            case (0x5B): AppendToSource("NormProbPlot"); break;
-                            case (0x64): AppendToSource("G-T"); break;
-                            case (0x65): AppendToSource("ZoomFit"); break;
-                            case (0x66): AppendToSource("DiagnosticOn"); break;
-                            case (0x67): AppendToSource("DiagnosticOff"); break;
-                            case (0x68): AppendToSource("Archive "); break;
-                            case (0x69): AppendToSource("UnArchive "); break;
-                            case (0x6A): AppendToSource("Asm("); break;
-                            case (0x6B): AppendToSource("AsmComp("); break;
-                            case (0x6C): AppendToSource("AsmPrgm"); break;
-                            case (0x6E): AppendToSource("Á"); break;
-                            case (0x6F): AppendToSource("À"); break;
-                            case (0x70): AppendToSource("Â"); break;
-                            case (0x71): AppendToSource("Ä"); break;
-                            case (0x72): AppendToSource("á"); break;
-                            case (0x73): AppendToSource("à"); break;
-                            case (0x74): AppendToSource("â"); break;
-                            case (0x75): AppendToSource("ä"); break;
-                            case (0x76): AppendToSource("É"); break;
-                            case (0x77): AppendToSource("È"); break;
-                            case (0x78): AppendToSource("Ê"); break;
-                            case (0x79): AppendToSource("Ë"); break;
-                            case (0x7A): AppendToSource("é"); break;
-                            case (0x7B): AppendToSource("è"); break;
-                            case (0x7C): AppendToSource("ê"); break;
-                            case (0x7D): AppendToSource("ë"); break;
-                            case (0x7F): AppendToSource("Ì"); break;
-                            case (0x80): AppendToSource("Î"); break;
-                            case (0x81): AppendToSource("Ï"); break;
-                            case (0x82): AppendToSource("í"); break;
-                            case (0x83): AppendToSource("ì"); break;
-                            case (0x84): AppendToSource("î"); break;
-                            case (0x85): AppendToSource("ï"); break;
-                            case (0x86): AppendToSource("Ó"); break;
-                            case (0x87): AppendToSource("Ò"); break;
-                            case (0x88): AppendToSource("Ô"); break;
-                            case (0x89): AppendToSource("Ö"); break;
-                            case (0x8A): AppendToSource("ó"); break;
-                            case (0x8B): AppendToSource("ò"); break;
-                            case (0x8C): AppendToSource("ô"); break;
-                            case (0x8D): AppendToSource("ö"); break;
-                            case (0x8E): AppendToSource("Ú"); break;
-                            case (0x8F): AppendToSource("Ù"); break;
-                            case (0x90): AppendToSource("Û"); break;
-                            case (0x91): AppendToSource("Ü"); break;
-                            case (0x92): AppendToSource("ú"); break;
-                            case (0x93): AppendToSource("ù"); break;
-                            case (0x94): AppendToSource("û"); break;
-                            case (0x95): AppendToSource("ü"); break;
-                            case (0x96): AppendToSource("Ç"); break;
-                            case (0x97): AppendToSource("ç"); break;
-                            case (0x98): AppendToSource("Ñ"); break;
-                            case (0x99): AppendToSource("ñ"); break;
-                            case (0x9A): AppendToSource("´"); break;
-                            case (0x9B): AppendToSource("|`"); break;
-                            case (0x9C): AppendToSource("¨"); break;
-                            case (0x9D): AppendToSource("¿"); break;
-                            case (0x9E): AppendToSource("¡"); break;
-                            case (0x9F): AppendToSource("α"); break;
-                            case (0xA0): AppendToSource("β"); break;
-                            case (0xA1): AppendToSource("γ"); break;
-                            case (0xA2): AppendToSource("Δ"); break;
-                            case (0xA3): AppendToSource("δ"); break;
-                            case (0xA4): AppendToSource("ε"); break;
-                            case (0xA5): AppendToSource("λ"); break;
-                            case (0xA6): AppendToSource("μ"); break;
-                            case (0xA7): AppendToSource("|π"); break;
-                            case (0xA8): AppendToSource("ρ"); break;
-                            case (0xA9): AppendToSource("Σ"); break;
-                            case (0xAB): AppendToSource("Φ"); break;
-                            case (0xAC): AppendToSource("Ω"); break;
-                            case (0xAD): AppendToSource("ṗ"); break;
-                            case (0xAE): AppendToSource("χ"); break;
-                            case (0xAF): AppendToSource("|F"); break;
-                            case (0xB0): AppendToSource("a"); break;
-                            case (0xB1): AppendToSource("b"); break;
-                            case (0xB2): AppendToSource("c"); break;
-                            case (0xB3): AppendToSource("d"); break;
-                            case (0xB4): AppendToSource("e"); break;
-                            case (0xB5): AppendToSource("f"); break;
-                            case (0xB6): AppendToSource("g"); break;
-                            case (0xB7): AppendToSource("h"); break;
-                            case (0xB8): AppendToSource("i"); break;
-                            case (0xB9): AppendToSource("j"); break;
-                            case (0xBA): AppendToSource("k"); break;
-                            case (0xBC): AppendToSource("l"); break;
-                            case (0xBD): AppendToSource("m"); break;
-                            case (0xBE): AppendToSource("n"); break;
-                            case (0xBF): AppendToSource("o"); break;
-                            case (0xC0): AppendToSource("p"); break;
-                            case (0xC1): AppendToSource("q"); break;
-                            case (0xC2): AppendToSource("r"); break;
-                            case (0xC3): AppendToSource("s"); break;
-                            case (0xC4): AppendToSource("t"); break;
-                            case (0xC5): AppendToSource("u"); break;
-                            case (0xC6): AppendToSource("v"); break;
-                            case (0xC7): AppendToSource("w"); break;
-                            case (0xC8): AppendToSource("x"); break;
-                            case (0xC9): AppendToSource("y"); break;
-                            case (0xCA): AppendToSource("z"); break;
-                            case (0xCB): AppendToSource("σ"); break;
-                            case (0xCC): AppendToSource("τ"); break;
-                            case (0xCD): AppendToSource("Í"); break;
-                            case (0xCE): AppendToSource("GarbageCollect"); break;
-                            case (0xCF): AppendToSource("|~"); break;
-                            case (0xD1): AppendToSource("@"); break;
-                            case (0xD2): AppendToSource("#"); break;
-                            case (0xD3): AppendToSource("$"); break;
-                            case (0xD4): AppendToSource("&"); break;
-                            case (0xD5): AppendToSource("`"); break;
-                            case (0xD6): AppendToSource(";"); break;
-                            case (0xD7): AppendToSource("\\"); break;
-                            case (0xD8): AppendToSource("|"); break;
-                            case (0xD9): AppendToSource("_"); break;
-                            case (0xDA): AppendToSource("%"); break;
-                            case (0xDB): AppendToSource("…"); break;
-                            case (0xDC): AppendToSource("∠"); break;
-                            case (0xDD): AppendToSource("ß"); break;
-                            case (0xDE): AppendToSource("ˣ"); break;
-                            case (0xDF): AppendToSource("ᴛ"); break;
-                            case (0xE0): AppendToSource("₀"); break;
-                            case (0xE1): AppendToSource("₁"); break;
-                            case (0xE2): AppendToSource("₂"); break;
-                            case (0xE3): AppendToSource("₃"); break;
-                            case (0xE4): AppendToSource("₄"); break;
-                            case (0xE5): AppendToSource("₅"); break;
-                            case (0xE6): AppendToSource("₆"); break;
-                            case (0xE7): AppendToSource("₇"); break;
-                            case (0xE8): AppendToSource("₈"); break;
-                            case (0xE9): AppendToSource("₉"); break;
-                            case (0xEA): AppendToSource("₁₀"); break;
-                            case (0xEB): AppendToSource("◄"); break;
-                            case (0xEC): AppendToSource("►"); break;
-                            case (0xED): AppendToSource("↑"); break;
-                            case (0xEE): AppendToSource("↓"); break;
-                            case (0xF0): AppendToSource("×"); break;
-                            case (0xF1): AppendToSource("∫"); break;
-                            case (0xF2): AppendToSource("bolduparrow"); break;
-                            case (0xF3): AppendToSource("bolddownarrow"); break;
-                            case (0xF4): AppendToSource("√"); break;
-                            case (0xF5): AppendToSource("invertedequal"); break;
+                            case (0x00): File.AppendAllText(path, "npv(", Encoding.UTF8); break;
+                            case (0x01): File.AppendAllText(path, "irr(", Encoding.UTF8); break;
+                            case (0x02): File.AppendAllText(path, "bal(", Encoding.UTF8); break;
+                            case (0x03): File.AppendAllText(path, "ΣPrn(", Encoding.UTF8); break;
+                            case (0x04): File.AppendAllText(path, "ΣInt(", Encoding.UTF8); break;
+                            case (0x05): File.AppendAllText(path, "►Nom(", Encoding.UTF8); break;
+                            case (0x06): File.AppendAllText(path, "►Eff(", Encoding.UTF8); break;
+                            case (0x07): File.AppendAllText(path, "dbd(", Encoding.UTF8); break;
+                            case (0x08): File.AppendAllText(path, "lcm(", Encoding.UTF8); break;
+                            case (0x09): File.AppendAllText(path, "gcd(", Encoding.UTF8); break;
+                            case (0x0A): File.AppendAllText(path, "randInt(", Encoding.UTF8); break;
+                            case (0x0B): File.AppendAllText(path, "randBin(", Encoding.UTF8); break;
+                            case (0x0C): File.AppendAllText(path, "sub(", Encoding.UTF8); break;
+                            case (0x0D): File.AppendAllText(path, "stdDev(", Encoding.UTF8); break;
+                            case (0x0E): File.AppendAllText(path, "variance(", Encoding.UTF8); break;
+                            case (0x0F): File.AppendAllText(path, "inString(", Encoding.UTF8); break;
+                            case (0x10): File.AppendAllText(path, "normalcdf(", Encoding.UTF8); break;
+                            case (0x11): File.AppendAllText(path, "invNorm(", Encoding.UTF8); break;
+                            case (0x12): File.AppendAllText(path, "tcdf(", Encoding.UTF8); break;
+                            case (0x13): File.AppendAllText(path, "χ²cdf(", Encoding.UTF8); break;
+                            case (0x14): File.AppendAllText(path, "Fcdf(", Encoding.UTF8); break;
+                            case (0x15): File.AppendAllText(path, "binompdf(", Encoding.UTF8); break;
+                            case (0x16): File.AppendAllText(path, "binomcdf(", Encoding.UTF8); break;
+                            case (0x17): File.AppendAllText(path, "poissonpdf(", Encoding.UTF8); break;
+                            case (0x18): File.AppendAllText(path, "poissoncdf(", Encoding.UTF8); break;
+                            case (0x19): File.AppendAllText(path, "geometpdf(", Encoding.UTF8); break;
+                            case (0x1A): File.AppendAllText(path, "geometcdf(", Encoding.UTF8); break;
+                            case (0x1B): File.AppendAllText(path, "normalpdf(", Encoding.UTF8); break;
+                            case (0x1C): File.AppendAllText(path, "tpdf(", Encoding.UTF8); break;
+                            case (0x1D): File.AppendAllText(path, "χ²pdf(", Encoding.UTF8); break;
+                            case (0x1E): File.AppendAllText(path, "Fpdf(", Encoding.UTF8); break;
+                            case (0x1F): File.AppendAllText(path, "randNorm(", Encoding.UTF8); break;
+                            case (0x20): File.AppendAllText(path, "tvm_Pmt", Encoding.UTF8); break;
+                            case (0x21): File.AppendAllText(path, "tvm_I%", Encoding.UTF8); break;
+                            case (0x22): File.AppendAllText(path, "tvm_PV", Encoding.UTF8); break;
+                            case (0x23): File.AppendAllText(path, "tvm_N", Encoding.UTF8); break;
+                            case (0x24): File.AppendAllText(path, "tvm_FV", Encoding.UTF8); break;
+                            case (0x25): File.AppendAllText(path, "conj(", Encoding.UTF8); break;
+                            case (0x26): File.AppendAllText(path, "real(", Encoding.UTF8); break;
+                            case (0x27): File.AppendAllText(path, "imag(", Encoding.UTF8); break;
+                            case (0x28): File.AppendAllText(path, "angle(", Encoding.UTF8); break;
+                            case (0x29): File.AppendAllText(path, "cumSum(", Encoding.UTF8); break;
+                            case (0x2A): File.AppendAllText(path, "expr(", Encoding.UTF8); break;
+                            case (0x2B): File.AppendAllText(path, "length(", Encoding.UTF8); break;
+                            case (0x2C): File.AppendAllText(path, "DeltaList(", Encoding.UTF8); break;
+                            case (0x2D): File.AppendAllText(path, "ref(", Encoding.UTF8); break;
+                            case (0x2E): File.AppendAllText(path, "rref(", Encoding.UTF8); break;
+                            case (0x2F): File.AppendAllText(path, "►Rect", Encoding.UTF8); break;
+                            case (0x30): File.AppendAllText(path, "►Polar", Encoding.UTF8); break;
+                            case (0x31): File.AppendAllText(path, "[e]", Encoding.UTF8); break;
+                            case (0x32): File.AppendAllText(path, "SinReg ", Encoding.UTF8); break;
+                            case (0x33): File.AppendAllText(path, "Logistic ", Encoding.UTF8); break;
+                            case (0x34): File.AppendAllText(path, "LinRegTTest ", Encoding.UTF8); break;
+                            case (0x35): File.AppendAllText(path, "ShadeNorm(", Encoding.UTF8); break;
+                            case (0x36): File.AppendAllText(path, "Shade_t(", Encoding.UTF8); break;
+                            case (0x37): File.AppendAllText(path, "Shadeχ²(", Encoding.UTF8); break;
+                            case (0x38): File.AppendAllText(path, "ShadeF(", Encoding.UTF8); break;
+                            case (0x39): File.AppendAllText(path, "Matr►list(", Encoding.UTF8); break;
+                            case (0x3A): File.AppendAllText(path, "List►matr(", Encoding.UTF8); break;
+                            case (0x3B): File.AppendAllText(path, "Z-Test(", Encoding.UTF8); break;
+                            case (0x3C): File.AppendAllText(path, "T-Test ", Encoding.UTF8); break;
+                            case (0x3D): File.AppendAllText(path, "2-SampZTest(", Encoding.UTF8); break;
+                            case (0x3E): File.AppendAllText(path, "1-PropZTest(", Encoding.UTF8); break;
+                            case (0x3F): File.AppendAllText(path, "2-PropZTest(", Encoding.UTF8); break;
+                            case (0x40): File.AppendAllText(path, "χ²-Test(", Encoding.UTF8); break;
+                            case (0x41): File.AppendAllText(path, "ZInterval", Encoding.UTF8); break;
+                            case (0x42): File.AppendAllText(path, "2-SampZInt(", Encoding.UTF8); break;
+                            case (0x43): File.AppendAllText(path, "1-PropZInt(", Encoding.UTF8); break;
+                            case (0x44): File.AppendAllText(path, "2-PropZInt(", Encoding.UTF8); break;
+                            case (0x45): File.AppendAllText(path, "GraphStyle(", Encoding.UTF8); break;
+                            case (0x46): File.AppendAllText(path, "2-SampTTest ", Encoding.UTF8); break;
+                            case (0x47): File.AppendAllText(path, "2-SampFTest ", Encoding.UTF8); break;
+                            case (0x48): File.AppendAllText(path, "TInterval ", Encoding.UTF8); break;
+                            case (0x49): File.AppendAllText(path, "2-SampTInt ", Encoding.UTF8); break;
+                            case (0x4A): File.AppendAllText(path, "SetUpEditor ", Encoding.UTF8); break;
+                            case (0x4B): File.AppendAllText(path, "Pmt_End", Encoding.UTF8); break;
+                            case (0x4C): File.AppendAllText(path, "Pmt_Bgn", Encoding.UTF8); break;
+                            case (0x4D): File.AppendAllText(path, "Real", Encoding.UTF8); break;
+                            case (0x4E): File.AppendAllText(path, "re^θi", Encoding.UTF8); break;
+                            case (0x4F): File.AppendAllText(path, "a+bi", Encoding.UTF8); break;
+                            case (0x50): File.AppendAllText(path, "ExprOn", Encoding.UTF8); break;
+                            case (0x51): File.AppendAllText(path, "ExprOff", Encoding.UTF8); break;
+                            case (0x52): File.AppendAllText(path, "ClrAllLists", Encoding.UTF8); break;
+                            case (0x53): File.AppendAllText(path, "GetCalc(", Encoding.UTF8); break;
+                            case (0x54): File.AppendAllText(path, "DelVar ", Encoding.UTF8); break;
+                            case (0x55): File.AppendAllText(path, "Equ►String(", Encoding.UTF8); break;
+                            case (0x56): File.AppendAllText(path, "String►Equ(", Encoding.UTF8); break;
+                            case (0x57): File.AppendAllText(path, "Clear Entries", Encoding.UTF8); break;
+                            case (0x58): File.AppendAllText(path, "Select(", Encoding.UTF8); break;
+                            case (0x59): File.AppendAllText(path, "ANOVA(", Encoding.UTF8); break;
+                            case (0x5A): File.AppendAllText(path, "ModBoxPlot", Encoding.UTF8); break;
+                            case (0x5B): File.AppendAllText(path, "NormProbPlot", Encoding.UTF8); break;
+                            case (0x64): File.AppendAllText(path, "G-T", Encoding.UTF8); break;
+                            case (0x65): File.AppendAllText(path, "ZoomFit", Encoding.UTF8); break;
+                            case (0x66): File.AppendAllText(path, "DiagnosticOn", Encoding.UTF8); break;
+                            case (0x67): File.AppendAllText(path, "DiagnosticOff", Encoding.UTF8); break;
+                            case (0x68): File.AppendAllText(path, "Archive ", Encoding.UTF8); break;
+                            case (0x69): File.AppendAllText(path, "UnArchive ", Encoding.UTF8); break;
+                            case (0x6A): File.AppendAllText(path, "Asm(", Encoding.UTF8); break;
+                            case (0x6B): File.AppendAllText(path, "AsmComp(", Encoding.UTF8); break;
+                            case (0x6C): File.AppendAllText(path, "AsmPrgm", Encoding.UTF8); break;
+                            case (0x6E): File.AppendAllText(path, "Á", Encoding.UTF8); break;
+                            case (0x6F): File.AppendAllText(path, "À", Encoding.UTF8); break;
+                            case (0x70): File.AppendAllText(path, "Â", Encoding.UTF8); break;
+                            case (0x71): File.AppendAllText(path, "Ä", Encoding.UTF8); break;
+                            case (0x72): File.AppendAllText(path, "á", Encoding.UTF8); break;
+                            case (0x73): File.AppendAllText(path, "à", Encoding.UTF8); break;
+                            case (0x74): File.AppendAllText(path, "â", Encoding.UTF8); break;
+                            case (0x75): File.AppendAllText(path, "ä", Encoding.UTF8); break;
+                            case (0x76): File.AppendAllText(path, "É", Encoding.UTF8); break;
+                            case (0x77): File.AppendAllText(path, "È", Encoding.UTF8); break;
+                            case (0x78): File.AppendAllText(path, "Ê", Encoding.UTF8); break;
+                            case (0x79): File.AppendAllText(path, "Ë", Encoding.UTF8); break;
+                            case (0x7A): File.AppendAllText(path, "é", Encoding.UTF8); break;
+                            case (0x7B): File.AppendAllText(path, "è", Encoding.UTF8); break;
+                            case (0x7C): File.AppendAllText(path, "ê", Encoding.UTF8); break;
+                            case (0x7D): File.AppendAllText(path, "ë", Encoding.UTF8); break;
+                            case (0x7F): File.AppendAllText(path, "Ì", Encoding.UTF8); break;
+                            case (0x80): File.AppendAllText(path, "Î", Encoding.UTF8); break;
+                            case (0x81): File.AppendAllText(path, "Ï", Encoding.UTF8); break;
+                            case (0x82): File.AppendAllText(path, "í", Encoding.UTF8); break;
+                            case (0x83): File.AppendAllText(path, "ì", Encoding.UTF8); break;
+                            case (0x84): File.AppendAllText(path, "î", Encoding.UTF8); break;
+                            case (0x85): File.AppendAllText(path, "ï", Encoding.UTF8); break;
+                            case (0x86): File.AppendAllText(path, "Ó", Encoding.UTF8); break;
+                            case (0x87): File.AppendAllText(path, "Ò", Encoding.UTF8); break;
+                            case (0x88): File.AppendAllText(path, "Ô", Encoding.UTF8); break;
+                            case (0x89): File.AppendAllText(path, "Ö", Encoding.UTF8); break;
+                            case (0x8A): File.AppendAllText(path, "ó", Encoding.UTF8); break;
+                            case (0x8B): File.AppendAllText(path, "ò", Encoding.UTF8); break;
+                            case (0x8C): File.AppendAllText(path, "ô", Encoding.UTF8); break;
+                            case (0x8D): File.AppendAllText(path, "ö", Encoding.UTF8); break;
+                            case (0x8E): File.AppendAllText(path, "Ú", Encoding.UTF8); break;
+                            case (0x8F): File.AppendAllText(path, "Ù", Encoding.UTF8); break;
+                            case (0x90): File.AppendAllText(path, "Û", Encoding.UTF8); break;
+                            case (0x91): File.AppendAllText(path, "Ü", Encoding.UTF8); break;
+                            case (0x92): File.AppendAllText(path, "ú", Encoding.UTF8); break;
+                            case (0x93): File.AppendAllText(path, "ù", Encoding.UTF8); break;
+                            case (0x94): File.AppendAllText(path, "û", Encoding.UTF8); break;
+                            case (0x95): File.AppendAllText(path, "ü", Encoding.UTF8); break;
+                            case (0x96): File.AppendAllText(path, "Ç", Encoding.UTF8); break;
+                            case (0x97): File.AppendAllText(path, "ç", Encoding.UTF8); break;
+                            case (0x98): File.AppendAllText(path, "Ñ", Encoding.UTF8); break;
+                            case (0x99): File.AppendAllText(path, "ñ", Encoding.UTF8); break;
+                            case (0x9A): File.AppendAllText(path, "´", Encoding.UTF8); break;
+                            case (0x9B): File.AppendAllText(path, "|`", Encoding.UTF8); break;
+                            case (0x9C): File.AppendAllText(path, "¨", Encoding.UTF8); break;
+                            case (0x9D): File.AppendAllText(path, "¿", Encoding.UTF8); break;
+                            case (0x9E): File.AppendAllText(path, "¡", Encoding.UTF8); break;
+                            case (0x9F): File.AppendAllText(path, "α", Encoding.UTF8); break;
+                            case (0xA0): File.AppendAllText(path, "β", Encoding.UTF8); break;
+                            case (0xA1): File.AppendAllText(path, "γ", Encoding.UTF8); break;
+                            case (0xA2): File.AppendAllText(path, "Δ", Encoding.UTF8); break;
+                            case (0xA3): File.AppendAllText(path, "δ", Encoding.UTF8); break;
+                            case (0xA4): File.AppendAllText(path, "ε", Encoding.UTF8); break;
+                            case (0xA5): File.AppendAllText(path, "λ", Encoding.UTF8); break;
+                            case (0xA6): File.AppendAllText(path, "μ", Encoding.UTF8); break;
+                            case (0xA7): File.AppendAllText(path, "|π", Encoding.UTF8); break;
+                            case (0xA8): File.AppendAllText(path, "ρ", Encoding.UTF8); break;
+                            case (0xA9): File.AppendAllText(path, "Σ", Encoding.UTF8); break;
+                            case (0xAB): File.AppendAllText(path, "Φ", Encoding.UTF8); break;
+                            case (0xAC): File.AppendAllText(path, "Ω", Encoding.UTF8); break;
+                            case (0xAD): File.AppendAllText(path, "ṗ", Encoding.UTF8); break;
+                            case (0xAE): File.AppendAllText(path, "χ", Encoding.UTF8); break;
+                            case (0xAF): File.AppendAllText(path, "|F", Encoding.UTF8); break;
+                            case (0xB0): File.AppendAllText(path, "a", Encoding.UTF8); break;
+                            case (0xB1): File.AppendAllText(path, "b", Encoding.UTF8); break;
+                            case (0xB2): File.AppendAllText(path, "c", Encoding.UTF8); break;
+                            case (0xB3): File.AppendAllText(path, "d", Encoding.UTF8); break;
+                            case (0xB4): File.AppendAllText(path, "e", Encoding.UTF8); break;
+                            case (0xB5): File.AppendAllText(path, "f", Encoding.UTF8); break;
+                            case (0xB6): File.AppendAllText(path, "g", Encoding.UTF8); break;
+                            case (0xB7): File.AppendAllText(path, "h", Encoding.UTF8); break;
+                            case (0xB8): File.AppendAllText(path, "i", Encoding.UTF8); break;
+                            case (0xB9): File.AppendAllText(path, "j", Encoding.UTF8); break;
+                            case (0xBA): File.AppendAllText(path, "k", Encoding.UTF8); break;
+                            case (0xBC): File.AppendAllText(path, "l", Encoding.UTF8); break;
+                            case (0xBD): File.AppendAllText(path, "m", Encoding.UTF8); break;
+                            case (0xBE): File.AppendAllText(path, "n", Encoding.UTF8); break;
+                            case (0xBF): File.AppendAllText(path, "o", Encoding.UTF8); break;
+                            case (0xC0): File.AppendAllText(path, "p", Encoding.UTF8); break;
+                            case (0xC1): File.AppendAllText(path, "q", Encoding.UTF8); break;
+                            case (0xC2): File.AppendAllText(path, "r", Encoding.UTF8); break;
+                            case (0xC3): File.AppendAllText(path, "s", Encoding.UTF8); break;
+                            case (0xC4): File.AppendAllText(path, "t", Encoding.UTF8); break;
+                            case (0xC5): File.AppendAllText(path, "u", Encoding.UTF8); break;
+                            case (0xC6): File.AppendAllText(path, "v", Encoding.UTF8); break;
+                            case (0xC7): File.AppendAllText(path, "w", Encoding.UTF8); break;
+                            case (0xC8): File.AppendAllText(path, "x", Encoding.UTF8); break;
+                            case (0xC9): File.AppendAllText(path, "y", Encoding.UTF8); break;
+                            case (0xCA): File.AppendAllText(path, "z", Encoding.UTF8); break;
+                            case (0xCB): File.AppendAllText(path, "σ", Encoding.UTF8); break;
+                            case (0xCC): File.AppendAllText(path, "τ", Encoding.UTF8); break;
+                            case (0xCD): File.AppendAllText(path, "Í", Encoding.UTF8); break;
+                            case (0xCE): File.AppendAllText(path, "GarbageCollect", Encoding.UTF8); break;
+                            case (0xCF): File.AppendAllText(path, "|~", Encoding.UTF8); break;
+                            case (0xD1): File.AppendAllText(path, "@", Encoding.UTF8); break;
+                            case (0xD2): File.AppendAllText(path, "#", Encoding.UTF8); break;
+                            case (0xD3): File.AppendAllText(path, "$", Encoding.UTF8); break;
+                            case (0xD4): File.AppendAllText(path, "&", Encoding.UTF8); break;
+                            case (0xD5): File.AppendAllText(path, "`", Encoding.UTF8); break;
+                            case (0xD6): File.AppendAllText(path, ";", Encoding.UTF8); break;
+                            case (0xD7): File.AppendAllText(path, "\\", Encoding.UTF8); break;
+                            case (0xD8): File.AppendAllText(path, "|", Encoding.UTF8); break;
+                            case (0xD9): File.AppendAllText(path, "_", Encoding.UTF8); break;
+                            case (0xDA): File.AppendAllText(path, "%", Encoding.UTF8); break;
+                            case (0xDB): File.AppendAllText(path, "…", Encoding.UTF8); break;
+                            case (0xDC): File.AppendAllText(path, "∠", Encoding.UTF8); break;
+                            case (0xDD): File.AppendAllText(path, "ß", Encoding.UTF8); break;
+                            case (0xDE): File.AppendAllText(path, "ˣ", Encoding.UTF8); break;
+                            case (0xDF): File.AppendAllText(path, "ᴛ", Encoding.UTF8); break;
+                            case (0xE0): File.AppendAllText(path, "₀", Encoding.UTF8); break;
+                            case (0xE1): File.AppendAllText(path, "₁", Encoding.UTF8); break;
+                            case (0xE2): File.AppendAllText(path, "₂", Encoding.UTF8); break;
+                            case (0xE3): File.AppendAllText(path, "₃", Encoding.UTF8); break;
+                            case (0xE4): File.AppendAllText(path, "₄", Encoding.UTF8); break;
+                            case (0xE5): File.AppendAllText(path, "₅", Encoding.UTF8); break;
+                            case (0xE6): File.AppendAllText(path, "₆", Encoding.UTF8); break;
+                            case (0xE7): File.AppendAllText(path, "₇", Encoding.UTF8); break;
+                            case (0xE8): File.AppendAllText(path, "₈", Encoding.UTF8); break;
+                            case (0xE9): File.AppendAllText(path, "₉", Encoding.UTF8); break;
+                            case (0xEA): File.AppendAllText(path, "₁₀", Encoding.UTF8); break;
+                            case (0xEB): File.AppendAllText(path, "◄", Encoding.UTF8); break;
+                            case (0xEC): File.AppendAllText(path, "►", Encoding.UTF8); break;
+                            case (0xED): File.AppendAllText(path, "↑", Encoding.UTF8); break;
+                            case (0xEE): File.AppendAllText(path, "↓", Encoding.UTF8); break;
+                            case (0xF0): File.AppendAllText(path, "×", Encoding.UTF8); break;
+                            case (0xF1): File.AppendAllText(path, "∫", Encoding.UTF8); break;
+                            case (0xF2): File.AppendAllText(path, "bolduparrow", Encoding.UTF8); break;
+                            case (0xF3): File.AppendAllText(path, "bolddownarrow", Encoding.UTF8); break;
+                            case (0xF4): File.AppendAllText(path, "√", Encoding.UTF8); break;
+                            case (0xF5): File.AppendAllText(path, "invertedequal", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token."); break;
+                                Console.WriteLine("Error Decompiling: Invalid token.", Encoding.UTF8); break;
                         }
                         break;
                     case 0xB3:
-                        switch (tokens[i++])
+                        switch (buffer[i++])
                         {
-                            case (0x32): AppendToSource("InsertLine("); break;
-                            case (0x33): AppendToSource("SpecialChars("); break;
-                            case (0x34): AppendToSource("CreateVar("); break;
-                            case (0x35): AppendToSource("ArcUnarcVar("); break;
-                            case (0x36): AppendToSource("DeleteVar("); break;
-                            case (0x37): AppendToSource("DeleteLine("); break;
-                            case (0x38): AppendToSource("VarStatus("); break;
-                            case (0x31): AppendToSource("ReplaceLine("); break;
-                            case (0x30): AppendToSource("ReadLine("); break;
+                            case (0x32): File.AppendAllText(path, "InsertLine(", Encoding.UTF8); break;
+                            case (0x33): File.AppendAllText(path, "SpecialChars(", Encoding.UTF8); break;
+                            case (0x34): File.AppendAllText(path, "CreateVar(", Encoding.UTF8); break;
+                            case (0x35): File.AppendAllText(path, "ArcUnarcVar(", Encoding.UTF8); break;
+                            case (0x36): File.AppendAllText(path, "DeleteVar(", Encoding.UTF8); break;
+                            case (0x37): File.AppendAllText(path, "DeleteLine(", Encoding.UTF8); break;
+                            case (0x38): File.AppendAllText(path, "VarStatus(", Encoding.UTF8); break;
+                            case (0x31): File.AppendAllText(path, "ReplaceLine(", Encoding.UTF8); break;
+                            case (0x30): File.AppendAllText(path, "ReadLine(", Encoding.UTF8); break;
                             default:
-                                // Fuckingbullshit
-                                AppendToSource("det "); break;
+                                File.AppendAllText(path, "det ", Encoding.UTF8); break;
                         }
                         break;
                     case 0x7E:
-                        switch (tokens[i++])
+                        switch (buffer[i++])
                         {
-                            case (0x00): AppendToSource("Sequential"); break;
-                            case (0x01): AppendToSource("Simul"); break;
-                            case (0x02): AppendToSource("PolarGC"); break;
-                            case (0x03): AppendToSource("RectGC"); break;
-                            case (0x04): AppendToSource("CoordOn"); break;
-                            case (0x05): AppendToSource("CoordOff"); break;
-                            case (0x06): AppendToSource("Thick"); break;
-                            case (0x07): AppendToSource("Dot-Thick"); break;
-                            case (0x08): AppendToSource("AxesOn"); break;
-                            case (0x09): AppendToSource("AxesOff"); break;
-                            case (0x0A): AppendToSource("GridDot "); break;
-                            case (0x0B): AppendToSource("GridOff"); break;
-                            case (0x0C): AppendToSource("LabelOn"); break;
-                            case (0x0D): AppendToSource("LabelOff"); break;
-                            case (0x0E): AppendToSource("Web"); break;
-                            case (0x0F): AppendToSource("Time"); break;
-                            case (0x10): AppendToSource("uvAxes"); break;
-                            case (0x11): AppendToSource("vwAxes"); break;
-                            case (0x12): AppendToSource("uwAxes"); break;
+                            case (0x00): File.AppendAllText(path, "Sequential", Encoding.UTF8); break;
+                            case (0x01): File.AppendAllText(path, "Simul", Encoding.UTF8); break;
+                            case (0x02): File.AppendAllText(path, "PolarGC", Encoding.UTF8); break;
+                            case (0x03): File.AppendAllText(path, "RectGC", Encoding.UTF8); break;
+                            case (0x04): File.AppendAllText(path, "CoordOn", Encoding.UTF8); break;
+                            case (0x05): File.AppendAllText(path, "CoordOff", Encoding.UTF8); break;
+                            case (0x06): File.AppendAllText(path, "Thick", Encoding.UTF8); break;
+                            case (0x07): File.AppendAllText(path, "Dot-Thick", Encoding.UTF8); break;
+                            case (0x08): File.AppendAllText(path, "AxesOn", Encoding.UTF8); break;
+                            case (0x09): File.AppendAllText(path, "AxesOff", Encoding.UTF8); break;
+                            case (0x0A): File.AppendAllText(path, "GridDot ", Encoding.UTF8); break;
+                            case (0x0B): File.AppendAllText(path, "GridOff", Encoding.UTF8); break;
+                            case (0x0C): File.AppendAllText(path, "LabelOn", Encoding.UTF8); break;
+                            case (0x0D): File.AppendAllText(path, "LabelOff", Encoding.UTF8); break;
+                            case (0x0E): File.AppendAllText(path, "Web", Encoding.UTF8); break;
+                            case (0x0F): File.AppendAllText(path, "Time", Encoding.UTF8); break;
+                            case (0x10): File.AppendAllText(path, "uvAxes", Encoding.UTF8); break;
+                            case (0x11): File.AppendAllText(path, "vwAxes", Encoding.UTF8); break;
+                            case (0x12): File.AppendAllText(path, "uwAxes", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token."); break;
+                                Console.WriteLine("Error Decompiling: Invalid token.", Encoding.UTF8); break;
                         }
                         break;
                     case 0x60:
-                        switch (tokens[i++])
+                        switch (buffer[i++])
                         {
-                            case (0x00): AppendToSource("Pic1"); break;
-                            case (0x01): AppendToSource("Pic2"); break;
-                            case (0x02): AppendToSource("Pic3"); break;
-                            case (0x03): AppendToSource("Pic4"); break;
-                            case (0x04): AppendToSource("Pic5"); break;
-                            case (0x05): AppendToSource("Pic6"); break;
-                            case (0x06): AppendToSource("Pic7"); break;
-                            case (0x07): AppendToSource("Pic8"); break;
-                            case (0x08): AppendToSource("Pic9"); break;
-                            case (0x09): AppendToSource("Pic0"); break;
+                            case (0x00): File.AppendAllText(path, "Pic1", Encoding.UTF8); break;
+                            case (0x01): File.AppendAllText(path, "Pic2", Encoding.UTF8); break;
+                            case (0x02): File.AppendAllText(path, "Pic3", Encoding.UTF8); break;
+                            case (0x03): File.AppendAllText(path, "Pic4", Encoding.UTF8); break;
+                            case (0x04): File.AppendAllText(path, "Pic5", Encoding.UTF8); break;
+                            case (0x05): File.AppendAllText(path, "Pic6", Encoding.UTF8); break;
+                            case (0x06): File.AppendAllText(path, "Pic7", Encoding.UTF8); break;
+                            case (0x07): File.AppendAllText(path, "Pic8", Encoding.UTF8); break;
+                            case (0x08): File.AppendAllText(path, "Pic9", Encoding.UTF8); break;
+                            case (0x09): File.AppendAllText(path, "Pic0", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token."); break;
+                                Console.WriteLine("Error Decompiling: Invalid token.", Encoding.UTF8); break;
                         }
                         break;
                     case 0x61:
-                        switch (tokens[i++])
+                        switch (buffer[i++])
                         {
-                            case (0x00): AppendToSource("GDB1"); break;
-                            case (0x01): AppendToSource("GDB2"); break;
-                            case (0x02): AppendToSource("GDB3"); break;
-                            case (0x03): AppendToSource("GDB4"); break;
-                            case (0x04): AppendToSource("GDB5"); break;
-                            case (0x05): AppendToSource("GDB6"); break;
-                            case (0x06): AppendToSource("GDB7"); break;
-                            case (0x07): AppendToSource("GDB8"); break;
-                            case (0x08): AppendToSource("GDB9"); break;
-                            case (0x09): AppendToSource("GDB0"); break;
+                            case (0x00): File.AppendAllText(path, "GDB1", Encoding.UTF8); break;
+                            case (0x01): File.AppendAllText(path, "GDB2", Encoding.UTF8); break;
+                            case (0x02): File.AppendAllText(path, "GDB3", Encoding.UTF8); break;
+                            case (0x03): File.AppendAllText(path, "GDB4", Encoding.UTF8); break;
+                            case (0x04): File.AppendAllText(path, "GDB5", Encoding.UTF8); break;
+                            case (0x05): File.AppendAllText(path, "GDB6", Encoding.UTF8); break;
+                            case (0x06): File.AppendAllText(path, "GDB7", Encoding.UTF8); break;
+                            case (0x07): File.AppendAllText(path, "GDB8", Encoding.UTF8); break;
+                            case (0x08): File.AppendAllText(path, "GDB9", Encoding.UTF8); break;
+                            case (0x09): File.AppendAllText(path, "GDB0", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token."); break;
+                                Console.WriteLine("Error Decompiling: Invalid token.", Encoding.UTF8); break;
                         }
                         break;
                     case 0x62:
-                        switch (tokens[i++])
+                        switch (buffer[i++])
                         {
-                            case (0x01): AppendToSource("[RegEQ]"); break;
-                            case (0x02): AppendToSource("[n]"); break;
-                            case (0x03): AppendToSource("ẋ"); break;
-                            case (0x04): AppendToSource("Σx"); break;
-                            case (0x05): AppendToSource("Σx²"); break;
-                            case (0x06): AppendToSource("[Sx]"); break;
-                            case (0x07): AppendToSource("σx"); break;
-                            case (0x08): AppendToSource("[minX]"); break;
-                            case (0x09): AppendToSource("[maxX]"); break;
-                            case (0x0A): AppendToSource("[minY]"); break;
-                            case (0x0B): AppendToSource("[maxY]"); break;
-                            case (0x0C): AppendToSource("ȳ"); break;
-                            case (0x0D): AppendToSource("Σy"); break;
-                            case (0x0E): AppendToSource("Σy²"); break;
-                            case (0x0F): AppendToSource("[Sy]"); break;
-                            case (0x10): AppendToSource("σy"); break;
-                            case (0x11): AppendToSource("Σxy"); break;
-                            case (0x12): AppendToSource("[r]"); break;
-                            case (0x13): AppendToSource("[Med]"); break;
-                            case (0x14): AppendToSource("[Q1]"); break;
-                            case (0x15): AppendToSource("[Q3]"); break;
-                            case (0x16): AppendToSource("[|a]"); break;
-                            case (0x17): AppendToSource("[|b]"); break;
-                            case (0x18): AppendToSource("[|c]"); break;
-                            case (0x19): AppendToSource("[|d]"); break;
-                            case (0x1A): AppendToSource("[|e]"); break;
-                            case (0x1B): AppendToSource("x₁"); break;
-                            case (0x1C): AppendToSource("x₂"); break;
-                            case (0x1D): AppendToSource("x₃"); break;
-                            case (0x1E): AppendToSource("y₁"); break;
-                            case (0x1F): AppendToSource("y₂"); break;
-                            case (0x20): AppendToSource("y₃"); break;
-                            case (0x21): AppendToSource("[recursiven]"); break;
-                            case (0x22): AppendToSource("[p]"); break;
-                            case (0x23): AppendToSource("[z]"); break;
-                            case (0x24): AppendToSource("[t]"); break;
-                            case (0x25): AppendToSource("χ²"); break;
-                            case (0x26): AppendToSource("[|F]"); break;
-                            case (0x27): AppendToSource("[df]"); break;
-                            case (0x28): AppendToSource("[ṗ]"); break;
-                            case (0x29): AppendToSource("ṗ₁"); break;
-                            case (0x2A): AppendToSource("ṗ₂"); break;
-                            case (0x2B): AppendToSource("ẋ₁"); break;
-                            case (0x2C): AppendToSource("Sx₁"); break;
-                            case (0x2D): AppendToSource("n₁"); break;
-                            case (0x2E): AppendToSource("ẋ₂"); break;
-                            case (0x2F): AppendToSource("Sx₂"); break;
-                            case (0x30): AppendToSource("n₂"); break;
-                            case (0x31): AppendToSource("[Sxp]"); break;
-                            case (0x32): AppendToSource("[lower]"); break;
-                            case (0x33): AppendToSource("[upper]"); break;
-                            case (0x34): AppendToSource("[s]"); break;
-                            case (0x35): AppendToSource("r²"); break;
-                            case (0x36): AppendToSource("R²"); break;
-                            case (0x37): AppendToSource("[factordf]"); break;
-                            case (0x38): AppendToSource("[factorSS]"); break;
-                            case (0x39): AppendToSource("[factorMS]"); break;
-                            case (0x3A): AppendToSource("[errordf]"); break;
-                            case (0x3B): AppendToSource("[errorSS]"); break;
-                            case (0x3C): AppendToSource("[errorMS]"); break;
+                            case (0x01): File.AppendAllText(path, "[RegEQ]", Encoding.UTF8); break;
+                            case (0x02): File.AppendAllText(path, "[n]", Encoding.UTF8); break;
+                            case (0x03): File.AppendAllText(path, "ẋ", Encoding.UTF8); break;
+                            case (0x04): File.AppendAllText(path, "Σx", Encoding.UTF8); break;
+                            case (0x05): File.AppendAllText(path, "Σx²", Encoding.UTF8); break;
+                            case (0x06): File.AppendAllText(path, "[Sx]", Encoding.UTF8); break;
+                            case (0x07): File.AppendAllText(path, "σx", Encoding.UTF8); break;
+                            case (0x08): File.AppendAllText(path, "[minX]", Encoding.UTF8); break;
+                            case (0x09): File.AppendAllText(path, "[maxX]", Encoding.UTF8); break;
+                            case (0x0A): File.AppendAllText(path, "[minY]", Encoding.UTF8); break;
+                            case (0x0B): File.AppendAllText(path, "[maxY]", Encoding.UTF8); break;
+                            case (0x0C): File.AppendAllText(path, "ȳ", Encoding.UTF8); break;
+                            case (0x0D): File.AppendAllText(path, "Σy", Encoding.UTF8); break;
+                            case (0x0E): File.AppendAllText(path, "Σy²", Encoding.UTF8); break;
+                            case (0x0F): File.AppendAllText(path, "[Sy]", Encoding.UTF8); break;
+                            case (0x10): File.AppendAllText(path, "σy", Encoding.UTF8); break;
+                            case (0x11): File.AppendAllText(path, "Σxy", Encoding.UTF8); break;
+                            case (0x12): File.AppendAllText(path, "[r]", Encoding.UTF8); break;
+                            case (0x13): File.AppendAllText(path, "[Med]", Encoding.UTF8); break;
+                            case (0x14): File.AppendAllText(path, "[Q1]", Encoding.UTF8); break;
+                            case (0x15): File.AppendAllText(path, "[Q3]", Encoding.UTF8); break;
+                            case (0x16): File.AppendAllText(path, "[|a]", Encoding.UTF8); break;
+                            case (0x17): File.AppendAllText(path, "[|b]", Encoding.UTF8); break;
+                            case (0x18): File.AppendAllText(path, "[|c]", Encoding.UTF8); break;
+                            case (0x19): File.AppendAllText(path, "[|d]", Encoding.UTF8); break;
+                            case (0x1A): File.AppendAllText(path, "[|e]", Encoding.UTF8); break;
+                            case (0x1B): File.AppendAllText(path, "x₁", Encoding.UTF8); break;
+                            case (0x1C): File.AppendAllText(path, "x₂", Encoding.UTF8); break;
+                            case (0x1D): File.AppendAllText(path, "x₃", Encoding.UTF8); break;
+                            case (0x1E): File.AppendAllText(path, "y₁", Encoding.UTF8); break;
+                            case (0x1F): File.AppendAllText(path, "y₂", Encoding.UTF8); break;
+                            case (0x20): File.AppendAllText(path, "y₃", Encoding.UTF8); break;
+                            case (0x21): File.AppendAllText(path, "[recursiven]", Encoding.UTF8); break;
+                            case (0x22): File.AppendAllText(path, "[p]", Encoding.UTF8); break;
+                            case (0x23): File.AppendAllText(path, "[z]", Encoding.UTF8); break;
+                            case (0x24): File.AppendAllText(path, "[t]", Encoding.UTF8); break;
+                            case (0x25): File.AppendAllText(path, "χ²", Encoding.UTF8); break;
+                            case (0x26): File.AppendAllText(path, "[|F]", Encoding.UTF8); break;
+                            case (0x27): File.AppendAllText(path, "[df]", Encoding.UTF8); break;
+                            case (0x28): File.AppendAllText(path, "[ṗ]", Encoding.UTF8); break;
+                            case (0x29): File.AppendAllText(path, "ṗ₁", Encoding.UTF8); break;
+                            case (0x2A): File.AppendAllText(path, "ṗ₂", Encoding.UTF8); break;
+                            case (0x2B): File.AppendAllText(path, "ẋ₁", Encoding.UTF8); break;
+                            case (0x2C): File.AppendAllText(path, "Sx₁", Encoding.UTF8); break;
+                            case (0x2D): File.AppendAllText(path, "n₁", Encoding.UTF8); break;
+                            case (0x2E): File.AppendAllText(path, "ẋ₂", Encoding.UTF8); break;
+                            case (0x2F): File.AppendAllText(path, "Sx₂", Encoding.UTF8); break;
+                            case (0x30): File.AppendAllText(path, "n₂", Encoding.UTF8); break;
+                            case (0x31): File.AppendAllText(path, "[Sxp]", Encoding.UTF8); break;
+                            case (0x32): File.AppendAllText(path, "[lower]", Encoding.UTF8); break;
+                            case (0x33): File.AppendAllText(path, "[upper]", Encoding.UTF8); break;
+                            case (0x34): File.AppendAllText(path, "[s]", Encoding.UTF8); break;
+                            case (0x35): File.AppendAllText(path, "r²", Encoding.UTF8); break;
+                            case (0x36): File.AppendAllText(path, "R²", Encoding.UTF8); break;
+                            case (0x37): File.AppendAllText(path, "[factordf]", Encoding.UTF8); break;
+                            case (0x38): File.AppendAllText(path, "[factorSS]", Encoding.UTF8); break;
+                            case (0x39): File.AppendAllText(path, "[factorMS]", Encoding.UTF8); break;
+                            case (0x3A): File.AppendAllText(path, "[errordf]", Encoding.UTF8); break;
+                            case (0x3B): File.AppendAllText(path, "[errorSS]", Encoding.UTF8); break;
+                            case (0x3C): File.AppendAllText(path, "[errorMS]", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token."); break;
+                                Console.WriteLine("Error Decompiling: Invalid token.", Encoding.UTF8); break;
                         }
                         break;
                     case 0x63:
-                        switch (tokens[i++])
+                        switch (buffer[i++])
                         {
-                            case (0x00): AppendToSource("ZXscl"); break;
-                            case (0x01): AppendToSource("ZYscl"); break;
-                            case (0x02): AppendToSource("Xscl"); break;
-                            case (0x03): AppendToSource("Yscl"); break;
-                            case (0x04): AppendToSource("u(nMin)"); break;
-                            case (0x05): AppendToSource("v(nMin)"); break;
-                            case (0x06): AppendToSource("Un-₁"); break;
-                            case (0x07): AppendToSource("Vn-₁"); break;
-                            case (0x08): AppendToSource("Zu(nmin)"); break;
-                            case (0x09): AppendToSource("Zv(nmin)"); break;
-                            case (0x0A): AppendToSource("Xmin"); break;
-                            case (0x0B): AppendToSource("Xmax"); break;
-                            case (0x0C): AppendToSource("Ymin"); break;
-                            case (0x0D): AppendToSource("Ymax"); break;
-                            case (0x0E): AppendToSource("Tmin"); break;
-                            case (0x0F): AppendToSource("Tmax"); break;
-                            case (0x10): AppendToSource("θMin"); break;
-                            case (0x11): AppendToSource("θMax"); break;
-                            case (0x12): AppendToSource("ZXmin"); break;
-                            case (0x13): AppendToSource("ZXmax"); break;
-                            case (0x14): AppendToSource("ZYmin"); break;
-                            case (0x15): AppendToSource("ZYmax"); break;
-                            case (0x16): AppendToSource("Zθmin"); break;
-                            case (0x17): AppendToSource("Zθmax"); break;
-                            case (0x18): AppendToSource("ZTmin"); break;
-                            case (0x19): AppendToSource("ZTmax"); break;
-                            case (0x1A): AppendToSource("TblStart"); break;
-                            case (0x1B): AppendToSource("PlotStart"); break;
-                            case (0x1C): AppendToSource("ZPlotStart"); break;
-                            case (0x1D): AppendToSource("nMax"); break;
-                            case (0x1E): AppendToSource("ZnMax"); break;
-                            case (0x1F): AppendToSource("nMin"); break;
-                            case (0x20): AppendToSource("ZnMin"); break;
-                            case (0x21): AppendToSource("∆Tbl"); break;
-                            case (0x22): AppendToSource("Tstep"); break;
-                            case (0x23): AppendToSource("θstep"); break;
-                            case (0x24): AppendToSource("ZTstep"); break;
-                            case (0x25): AppendToSource("Zθstep"); break;
-                            case (0x26): AppendToSource("∆X"); break;
-                            case (0x27): AppendToSource("∆Y"); break;
-                            case (0x28): AppendToSource("XFact"); break;
-                            case (0x29): AppendToSource("YFact"); break;
-                            case (0x2A): AppendToSource("TblInput"); break;
-                            case (0x2B): AppendToSource("|N"); break;
-                            case (0x2C): AppendToSource("I%"); break;
-                            case (0x2D): AppendToSource("PV"); break;
-                            case (0x2E): AppendToSource("PMT"); break;
-                            case (0x2F): AppendToSource("FV"); break;
-                            case (0x30): AppendToSource("|P/Y"); break;
-                            case (0x31): AppendToSource("|C/Y"); break;
-                            case (0x32): AppendToSource("w(nMin)"); break;
-                            case (0x33): AppendToSource("Zw(nMin)"); break;
-                            case (0x34): AppendToSource("PlotStep"); break;
-                            case (0x35): AppendToSource("ZPlotStep"); break;
-                            case (0x36): AppendToSource("Xres"); break;
-                            case (0x37): AppendToSource("ZXres"); break;
+                            case (0x00): File.AppendAllText(path, "ZXscl", Encoding.UTF8); break;
+                            case (0x01): File.AppendAllText(path, "ZYscl", Encoding.UTF8); break;
+                            case (0x02): File.AppendAllText(path, "Xscl", Encoding.UTF8); break;
+                            case (0x03): File.AppendAllText(path, "Yscl", Encoding.UTF8); break;
+                            case (0x04): File.AppendAllText(path, "u(nMin)", Encoding.UTF8); break;
+                            case (0x05): File.AppendAllText(path, "v(nMin)", Encoding.UTF8); break;
+                            case (0x06): File.AppendAllText(path, "Un-₁", Encoding.UTF8); break;
+                            case (0x07): File.AppendAllText(path, "Vn-₁", Encoding.UTF8); break;
+                            case (0x08): File.AppendAllText(path, "Zu(nmin)", Encoding.UTF8); break;
+                            case (0x09): File.AppendAllText(path, "Zv(nmin)", Encoding.UTF8); break;
+                            case (0x0A): File.AppendAllText(path, "Xmin", Encoding.UTF8); break;
+                            case (0x0B): File.AppendAllText(path, "Xmax", Encoding.UTF8); break;
+                            case (0x0C): File.AppendAllText(path, "Ymin", Encoding.UTF8); break;
+                            case (0x0D): File.AppendAllText(path, "Ymax", Encoding.UTF8); break;
+                            case (0x0E): File.AppendAllText(path, "Tmin", Encoding.UTF8); break;
+                            case (0x0F): File.AppendAllText(path, "Tmax", Encoding.UTF8); break;
+                            case (0x10): File.AppendAllText(path, "θMin", Encoding.UTF8); break;
+                            case (0x11): File.AppendAllText(path, "θMax", Encoding.UTF8); break;
+                            case (0x12): File.AppendAllText(path, "ZXmin", Encoding.UTF8); break;
+                            case (0x13): File.AppendAllText(path, "ZXmax", Encoding.UTF8); break;
+                            case (0x14): File.AppendAllText(path, "ZYmin", Encoding.UTF8); break;
+                            case (0x15): File.AppendAllText(path, "ZYmax", Encoding.UTF8); break;
+                            case (0x16): File.AppendAllText(path, "Zθmin", Encoding.UTF8); break;
+                            case (0x17): File.AppendAllText(path, "Zθmax", Encoding.UTF8); break;
+                            case (0x18): File.AppendAllText(path, "ZTmin", Encoding.UTF8); break;
+                            case (0x19): File.AppendAllText(path, "ZTmax", Encoding.UTF8); break;
+                            case (0x1A): File.AppendAllText(path, "TblStart", Encoding.UTF8); break;
+                            case (0x1B): File.AppendAllText(path, "PlotStart", Encoding.UTF8); break;
+                            case (0x1C): File.AppendAllText(path, "ZPlotStart", Encoding.UTF8); break;
+                            case (0x1D): File.AppendAllText(path, "nMax", Encoding.UTF8); break;
+                            case (0x1E): File.AppendAllText(path, "ZnMax", Encoding.UTF8); break;
+                            case (0x1F): File.AppendAllText(path, "nMin", Encoding.UTF8); break;
+                            case (0x20): File.AppendAllText(path, "ZnMin", Encoding.UTF8); break;
+                            case (0x21): File.AppendAllText(path, "∆Tbl", Encoding.UTF8); break;
+                            case (0x22): File.AppendAllText(path, "Tstep", Encoding.UTF8); break;
+                            case (0x23): File.AppendAllText(path, "θstep", Encoding.UTF8); break;
+                            case (0x24): File.AppendAllText(path, "ZTstep", Encoding.UTF8); break;
+                            case (0x25): File.AppendAllText(path, "Zθstep", Encoding.UTF8); break;
+                            case (0x26): File.AppendAllText(path, "∆X", Encoding.UTF8); break;
+                            case (0x27): File.AppendAllText(path, "∆Y", Encoding.UTF8); break;
+                            case (0x28): File.AppendAllText(path, "XFact", Encoding.UTF8); break;
+                            case (0x29): File.AppendAllText(path, "YFact", Encoding.UTF8); break;
+                            case (0x2A): File.AppendAllText(path, "TblInput", Encoding.UTF8); break;
+                            case (0x2B): File.AppendAllText(path, "|N", Encoding.UTF8); break;
+                            case (0x2C): File.AppendAllText(path, "I%", Encoding.UTF8); break;
+                            case (0x2D): File.AppendAllText(path, "PV", Encoding.UTF8); break;
+                            case (0x2E): File.AppendAllText(path, "PMT", Encoding.UTF8); break;
+                            case (0x2F): File.AppendAllText(path, "FV", Encoding.UTF8); break;
+                            case (0x30): File.AppendAllText(path, "|P/Y", Encoding.UTF8); break;
+                            case (0x31): File.AppendAllText(path, "|C/Y", Encoding.UTF8); break;
+                            case (0x32): File.AppendAllText(path, "w(nMin)", Encoding.UTF8); break;
+                            case (0x33): File.AppendAllText(path, "Zw(nMin)", Encoding.UTF8); break;
+                            case (0x34): File.AppendAllText(path, "PlotStep", Encoding.UTF8); break;
+                            case (0x35): File.AppendAllText(path, "ZPlotStep", Encoding.UTF8); break;
+                            case (0x36): File.AppendAllText(path, "Xres", Encoding.UTF8); break;
+                            case (0x37): File.AppendAllText(path, "ZXres", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token."); break;
+                                Console.WriteLine("Error Decompiling: Invalid token.", Encoding.UTF8); break;
                         }
                         break;
                     case 0x5E:
-                        switch (tokens[i++])
+                        switch (buffer[i++])
                         {
-                            case (0x10): AppendToSource("Y₁"); break;
-                            case (0x11): AppendToSource("Y₂"); break;
-                            case (0x12): AppendToSource("Y₃"); break;
-                            case (0x13): AppendToSource("Y₄"); break;
-                            case (0x14): AppendToSource("Y₅"); break;
-                            case (0x15): AppendToSource("Y₆"); break;
-                            case (0x16): AppendToSource("Y₇"); break;
-                            case (0x17): AppendToSource("Y₈"); break;
-                            case (0x18): AppendToSource("Y₉"); break;
-                            case (0x19): AppendToSource("Y₀"); break;
-                            case (0x20): AppendToSource("X₁ᴛ"); break;
-                            case (0x21): AppendToSource("Y₁ᴛ"); break;
-                            case (0x22): AppendToSource("X₂ᴛ"); break;
-                            case (0x23): AppendToSource("Y₂ᴛ"); break;
-                            case (0x24): AppendToSource("X₃ᴛ"); break;
-                            case (0x25): AppendToSource("Y₃ᴛ"); break;
-                            case (0x26): AppendToSource("X₄ᴛ"); break;
-                            case (0x27): AppendToSource("Y₄ᴛ"); break;
-                            case (0x28): AppendToSource("X₅ᴛ"); break;
-                            case (0x29): AppendToSource("Y₅ᴛ"); break;
-                            case (0x2A): AppendToSource("X₆ᴛ"); break;
-                            case (0x2B): AppendToSource("Y₆ᴛ"); break;
-                            case (0x40): AppendToSource("r₁"); break;
-                            case (0x41): AppendToSource("r₂"); break;
-                            case (0x42): AppendToSource("r₃"); break;
-                            case (0x43): AppendToSource("r₄"); break;
-                            case (0x44): AppendToSource("r₅"); break;
-                            case (0x45): AppendToSource("r₆"); break;
-                            case (0x80): AppendToSource("|u"); break;
-                            case (0x81): AppendToSource("|v"); break;
-                            case (0x82): AppendToSource("|w"); break;
+                            case (0x10): File.AppendAllText(path, "Y₁", Encoding.UTF8); break;
+                            case (0x11): File.AppendAllText(path, "Y₂", Encoding.UTF8); break;
+                            case (0x12): File.AppendAllText(path, "Y₃", Encoding.UTF8); break;
+                            case (0x13): File.AppendAllText(path, "Y₄", Encoding.UTF8); break;
+                            case (0x14): File.AppendAllText(path, "Y₅", Encoding.UTF8); break;
+                            case (0x15): File.AppendAllText(path, "Y₆", Encoding.UTF8); break;
+                            case (0x16): File.AppendAllText(path, "Y₇", Encoding.UTF8); break;
+                            case (0x17): File.AppendAllText(path, "Y₈", Encoding.UTF8); break;
+                            case (0x18): File.AppendAllText(path, "Y₉", Encoding.UTF8); break;
+                            case (0x19): File.AppendAllText(path, "Y₀", Encoding.UTF8); break;
+                            case (0x20): File.AppendAllText(path, "X₁ᴛ", Encoding.UTF8); break;
+                            case (0x21): File.AppendAllText(path, "Y₁ᴛ", Encoding.UTF8); break;
+                            case (0x22): File.AppendAllText(path, "X₂ᴛ", Encoding.UTF8); break;
+                            case (0x23): File.AppendAllText(path, "Y₂ᴛ", Encoding.UTF8); break;
+                            case (0x24): File.AppendAllText(path, "X₃ᴛ", Encoding.UTF8); break;
+                            case (0x25): File.AppendAllText(path, "Y₃ᴛ", Encoding.UTF8); break;
+                            case (0x26): File.AppendAllText(path, "X₄ᴛ", Encoding.UTF8); break;
+                            case (0x27): File.AppendAllText(path, "Y₄ᴛ", Encoding.UTF8); break;
+                            case (0x28): File.AppendAllText(path, "X₅ᴛ", Encoding.UTF8); break;
+                            case (0x29): File.AppendAllText(path, "Y₅ᴛ", Encoding.UTF8); break;
+                            case (0x2A): File.AppendAllText(path, "X₆ᴛ", Encoding.UTF8); break;
+                            case (0x2B): File.AppendAllText(path, "Y₆ᴛ", Encoding.UTF8); break;
+                            case (0x40): File.AppendAllText(path, "r₁", Encoding.UTF8); break;
+                            case (0x41): File.AppendAllText(path, "r₂", Encoding.UTF8); break;
+                            case (0x42): File.AppendAllText(path, "r₃", Encoding.UTF8); break;
+                            case (0x43): File.AppendAllText(path, "r₄", Encoding.UTF8); break;
+                            case (0x44): File.AppendAllText(path, "r₅", Encoding.UTF8); break;
+                            case (0x45): File.AppendAllText(path, "r₆", Encoding.UTF8); break;
+                            case (0x80): File.AppendAllText(path, "|u", Encoding.UTF8); break;
+                            case (0x81): File.AppendAllText(path, "|v", Encoding.UTF8); break;
+                            case (0x82): File.AppendAllText(path, "|w", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token."); break;
+                                Console.WriteLine("Error Decompiling: Invalid token.", Encoding.UTF8); break;
                         }
                         break;
                     case 0x5D:
-                        switch (tokens[i++])
+                        switch (buffer[i++])
                         {
-                            case (0x00): AppendToSource("L₁"); break;
-                            case (0x01): AppendToSource("L₂"); break;
-                            case (0x02): AppendToSource("L₃"); break;
-                            case (0x03): AppendToSource("L₄"); break;
-                            case (0x04): AppendToSource("L₅"); break;
-                            case (0x05): AppendToSource("L₆"); break;
+                            case (0x00): File.AppendAllText(path, "L₁", Encoding.UTF8); break;
+                            case (0x01): File.AppendAllText(path, "L₂", Encoding.UTF8); break;
+                            case (0x02): File.AppendAllText(path, "L₃", Encoding.UTF8); break;
+                            case (0x03): File.AppendAllText(path, "L₄", Encoding.UTF8); break;
+                            case (0x04): File.AppendAllText(path, "L₅", Encoding.UTF8); break;
+                            case (0x05): File.AppendAllText(path, "L₆", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token."); break;
+                                Console.WriteLine("Error Decompiling: Invalid token.", Encoding.UTF8); break;
                         }
                         break;
                     case 0x5C:
-                        switch (tokens[i++])
+                        switch (buffer[i++])
                         {
-                            case (0x00): AppendToSource("[A]"); break;
-                            case (0x01): AppendToSource("[B]"); break;
-                            case (0x02): AppendToSource("[C]"); break;
-                            case (0x03): AppendToSource("[D]"); break;
-                            case (0x04): AppendToSource("[E]"); break;
-                            case (0x05): AppendToSource("[F]"); break;
-                            case (0x06): AppendToSource("[G]"); break;
-                            case (0x07): AppendToSource("[H]"); break;
-                            case (0x08): AppendToSource("[I]"); break;
-                            case (0x09): AppendToSource("[J]"); break;
+                            case (0x00): File.AppendAllText(path, "[A]", Encoding.UTF8); break;
+                            case (0x01): File.AppendAllText(path, "[B]", Encoding.UTF8); break;
+                            case (0x02): File.AppendAllText(path, "[C]", Encoding.UTF8); break;
+                            case (0x03): File.AppendAllText(path, "[D]", Encoding.UTF8); break;
+                            case (0x04): File.AppendAllText(path, "[E]", Encoding.UTF8); break;
+                            case (0x05): File.AppendAllText(path, "[F]", Encoding.UTF8); break;
+                            case (0x06): File.AppendAllText(path, "[G]", Encoding.UTF8); break;
+                            case (0x07): File.AppendAllText(path, "[H]", Encoding.UTF8); break;
+                            case (0x08): File.AppendAllText(path, "[I]", Encoding.UTF8); break;
+                            case (0x09): File.AppendAllText(path, "[J]", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token."); break;
+                                Console.WriteLine("Error Decompiling: Invalid token.", Encoding.UTF8); break;
                         }
                         break;
                     default:
-                        AppendToSource((Tokens[tokens[i]]));
+                        File.AppendAllText(path, Tokens[buffer[i]], Encoding.UTF8);
                         break;
                 }
             }
+            Console.WriteLine("Wrote " + size + " bytes to destination.");
         }
 
         private static string BytesArrayToString(byte[] ba)
