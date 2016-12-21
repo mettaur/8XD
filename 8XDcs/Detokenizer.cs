@@ -264,6 +264,13 @@ namespace _8XDcs
             IEnumerable<byte> correct = new byte[] { 0x2A, 0x2A, 0x54, 0x49, 0x38, 0x33, 0x46, 0x2A, 0x1A, 0x0A, 0x00 };
             IEnumerable<byte> header = filebuf.Take(11);
             int tsize = (filebuf.ElementAt(73) + filebuf.ElementAt(74));
+            int protect = filebuf.ElementAt(60);
+
+            if (protect == 6)
+            {
+                Console.WriteLine("This file is in protected mode.");
+                Console.ReadKey();
+            }
 
             if (filebuf == null || !header.SequenceEqual(correct))
             {
@@ -295,14 +302,13 @@ namespace _8XDcs
                 {
                     if (p == null)
                     {
-                        p = (RandomString(5) + ".txt");
+                        p = RandomString(5);
                         path = p;
                         dest = File.Open(p, FileMode.Create);
                         Console.WriteLine("Created new file for output.");
                         dest.Close();
                         return;
                     }
-                    p += ".txt";
                     path = p;
                     dest = File.Open(p, FileMode.Create);
                     Console.WriteLine("\nCreated new file for output.");
@@ -323,7 +329,7 @@ namespace _8XDcs
         {
             if (buffer == null)
             {
-                Console.WriteLine("Error: Buffer Empty");
+                Console.WriteLine("Error: Buffer Empty.");
                 return;
             }
 
@@ -408,7 +414,7 @@ namespace _8XDcs
                             case (0x74): File.AppendAllText(path, "Thin", Encoding.UTF8); break;
                             case (0x75): File.AppendAllText(path, "Dot-Thin", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token.", Encoding.UTF8); break;
+                                Console.WriteLine("Error Decompiling: Invalid token: 0x" + buffer[i++].ToString("X2")); break;
                         }
                         break;
 
@@ -426,7 +432,7 @@ namespace _8XDcs
                             case (0x08): File.AppendAllText(path, "Str9", Encoding.UTF8); break;
                             case (0x09): File.AppendAllText(path, "Str0", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token.", Encoding.UTF8); break;
+                                Console.WriteLine("Error Decompiling: Invalid token: 0x" + buffer[i++].ToString("X2")); break;
                         }
                         break;
                     case 0xBB:
@@ -665,7 +671,7 @@ namespace _8XDcs
                             case (0xF4): File.AppendAllText(path, "√", Encoding.UTF8); break;
                             case (0xF5): File.AppendAllText(path, "invertedequal", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token.", Encoding.UTF8); break;
+                                Console.WriteLine("Error Decompiling: Invalid token: 0x" + buffer[i++].ToString("X2")); break;
                         }
                         break;
                     case 0xB3:
@@ -707,7 +713,7 @@ namespace _8XDcs
                             case (0x11): File.AppendAllText(path, "vwAxes", Encoding.UTF8); break;
                             case (0x12): File.AppendAllText(path, "uwAxes", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token.", Encoding.UTF8); break;
+                                Console.WriteLine("Error Decompiling: Invalid token: 0x" + buffer[i++].ToString("X2")); break;
                         }
                         break;
                     case 0x60:
@@ -724,7 +730,7 @@ namespace _8XDcs
                             case (0x08): File.AppendAllText(path, "Pic9", Encoding.UTF8); break;
                             case (0x09): File.AppendAllText(path, "Pic0", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token.", Encoding.UTF8); break;
+                                Console.WriteLine("Error Decompiling: Invalid token: 0x" + buffer[i++].ToString("X2")); break;
                         }
                         break;
                     case 0x61:
@@ -741,7 +747,7 @@ namespace _8XDcs
                             case (0x08): File.AppendAllText(path, "GDB9", Encoding.UTF8); break;
                             case (0x09): File.AppendAllText(path, "GDB0", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token.", Encoding.UTF8); break;
+                                Console.WriteLine("Error Decompiling: Invalid token: 0x" + buffer[i++].ToString("X2")); break;
                         }
                         break;
                     case 0x62:
@@ -808,7 +814,7 @@ namespace _8XDcs
                             case (0x3B): File.AppendAllText(path, "[errorSS]", Encoding.UTF8); break;
                             case (0x3C): File.AppendAllText(path, "[errorMS]", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token.", Encoding.UTF8); break;
+                                Console.WriteLine("Error Decompiling: Invalid token: 0x" + buffer[i++].ToString("X2")); break;
                         }
                         break;
                     case 0x63:
@@ -871,7 +877,7 @@ namespace _8XDcs
                             case (0x36): File.AppendAllText(path, "Xres", Encoding.UTF8); break;
                             case (0x37): File.AppendAllText(path, "ZXres", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token.", Encoding.UTF8); break;
+                                Console.WriteLine("Error Decompiling: Invalid token: 0x" + buffer[i++].ToString("X2")); break;
                         }
                         break;
                     case 0x5E:
@@ -909,7 +915,7 @@ namespace _8XDcs
                             case (0x81): File.AppendAllText(path, "|v", Encoding.UTF8); break;
                             case (0x82): File.AppendAllText(path, "|w", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token.", Encoding.UTF8); break;
+                                Console.WriteLine("Error Decompiling: Invalid token: 0x" + buffer[i++].ToString("X2")); break;
                         }
                         break;
                     case 0x5D:
@@ -922,7 +928,7 @@ namespace _8XDcs
                             case (0x04): File.AppendAllText(path, "L₅", Encoding.UTF8); break;
                             case (0x05): File.AppendAllText(path, "L₆", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token.", Encoding.UTF8); break;
+                                Console.WriteLine("Error Decompiling: Invalid token: 0x" + buffer[i++].ToString("X2")); break;
                         }
                         break;
                     case 0x5C:
@@ -939,7 +945,7 @@ namespace _8XDcs
                             case (0x08): File.AppendAllText(path, "[I]", Encoding.UTF8); break;
                             case (0x09): File.AppendAllText(path, "[J]", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token.", Encoding.UTF8); break;
+                                Console.WriteLine("Error Decompiling: Invalid token: 0x" + buffer[i++].ToString("X2")); break;
                         }
                         break;
                     default:
