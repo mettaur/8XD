@@ -302,14 +302,15 @@ namespace _8XDcs
                 {
                     if (p == null)
                     {
-                        p = RandomString(5);
+                        p = RandomString(5) + ".txt";
                         path = p;
-                        dest = File.Open(p, FileMode.Create);
-                        Console.WriteLine("Created new file for output.");
-                        dest.Close();
-                        return;
                     }
-                    path = p;
+
+                    else
+                    {
+                        path = p;
+                    }
+
                     dest = File.Open(p, FileMode.Create);
                     Console.WriteLine("\nCreated new file for output.");
                     dest.Close();
@@ -338,7 +339,7 @@ namespace _8XDcs
                 switch (buffer[i])
                 {
                     case 0xEF:
-                        switch (buffer[i++])
+                        switch (buffer[++i])
                         {
                             case (0x00): File.AppendAllText(path, "setDate(", Encoding.UTF8); break;
                             case (0x01): File.AppendAllText(path, "setTime(", Encoding.UTF8); break;
@@ -414,12 +415,12 @@ namespace _8XDcs
                             case (0x74): File.AppendAllText(path, "Thin", Encoding.UTF8); break;
                             case (0x75): File.AppendAllText(path, "Dot-Thin", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token: 0x" + buffer[i++].ToString("X2")); break;
+                                Console.WriteLine("Error Decompiling: Invalid token on index " + i + ": 0x" + buffer[i++].ToString("X2")); break;
                         }
                         break;
 
                     case 0xAA:
-                        switch (buffer[i++])
+                        switch (buffer[++i])
                         {
                             case (0x00): File.AppendAllText(path, "Str1", Encoding.UTF8); break;
                             case (0x01): File.AppendAllText(path, "Str2", Encoding.UTF8); break;
@@ -432,11 +433,12 @@ namespace _8XDcs
                             case (0x08): File.AppendAllText(path, "Str9", Encoding.UTF8); break;
                             case (0x09): File.AppendAllText(path, "Str0", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token: 0x" + buffer[i++].ToString("X2")); break;
+                                Console.WriteLine("Error Decompiling: Invalid token on index " + i + ": 0x" + buffer[i++].ToString("X2")); break;
                         }
                         break;
+
                     case 0xBB:
-                        switch (buffer[i++])
+                        switch (buffer[++i])
                         {
                             case (0x00): File.AppendAllText(path, "npv(", Encoding.UTF8); break;
                             case (0x01): File.AppendAllText(path, "irr(", Encoding.UTF8); break;
@@ -671,11 +673,11 @@ namespace _8XDcs
                             case (0xF4): File.AppendAllText(path, "√", Encoding.UTF8); break;
                             case (0xF5): File.AppendAllText(path, "invertedequal", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token: 0x" + buffer[i++].ToString("X2")); break;
+                                Console.WriteLine("Error Decompiling: Invalid token on index " + i + ": 0x" + buffer[i++].ToString("X2")); break;
                         }
                         break;
                     case 0xB3:
-                        switch (buffer[i++])
+                        switch (buffer[++i])
                         {
                             case (0x32): File.AppendAllText(path, "InsertLine(", Encoding.UTF8); break;
                             case (0x33): File.AppendAllText(path, "SpecialChars(", Encoding.UTF8); break;
@@ -691,7 +693,7 @@ namespace _8XDcs
                         }
                         break;
                     case 0x7E:
-                        switch (buffer[i++])
+                        switch (buffer[++i])
                         {
                             case (0x00): File.AppendAllText(path, "Sequential", Encoding.UTF8); break;
                             case (0x01): File.AppendAllText(path, "Simul", Encoding.UTF8); break;
@@ -713,11 +715,11 @@ namespace _8XDcs
                             case (0x11): File.AppendAllText(path, "vwAxes", Encoding.UTF8); break;
                             case (0x12): File.AppendAllText(path, "uwAxes", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token: 0x" + buffer[i++].ToString("X2")); break;
+                                Console.WriteLine("Error Decompiling: Invalid token on index " + i + ": 0x" + buffer[i++].ToString("X2")); break;
                         }
                         break;
                     case 0x60:
-                        switch (buffer[i++])
+                        switch (buffer[++i])
                         {
                             case (0x00): File.AppendAllText(path, "Pic1", Encoding.UTF8); break;
                             case (0x01): File.AppendAllText(path, "Pic2", Encoding.UTF8); break;
@@ -730,11 +732,11 @@ namespace _8XDcs
                             case (0x08): File.AppendAllText(path, "Pic9", Encoding.UTF8); break;
                             case (0x09): File.AppendAllText(path, "Pic0", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token: 0x" + buffer[i++].ToString("X2")); break;
+                                Console.WriteLine("Error Decompiling: Invalid token on index " + i + ": 0x" + buffer[i++].ToString("X2")); break;
                         }
                         break;
                     case 0x61:
-                        switch (buffer[i++])
+                        switch (buffer[++i])
                         {
                             case (0x00): File.AppendAllText(path, "GDB1", Encoding.UTF8); break;
                             case (0x01): File.AppendAllText(path, "GDB2", Encoding.UTF8); break;
@@ -747,11 +749,11 @@ namespace _8XDcs
                             case (0x08): File.AppendAllText(path, "GDB9", Encoding.UTF8); break;
                             case (0x09): File.AppendAllText(path, "GDB0", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token: 0x" + buffer[i++].ToString("X2")); break;
+                                Console.WriteLine("Error Decompiling: Invalid token on index " + i + ": 0x" + buffer[i++].ToString("X2")); break;
                         }
                         break;
                     case 0x62:
-                        switch (buffer[i++])
+                        switch (buffer[++i])
                         {
                             case (0x01): File.AppendAllText(path, "[RegEQ]", Encoding.UTF8); break;
                             case (0x02): File.AppendAllText(path, "[n]", Encoding.UTF8); break;
@@ -814,11 +816,11 @@ namespace _8XDcs
                             case (0x3B): File.AppendAllText(path, "[errorSS]", Encoding.UTF8); break;
                             case (0x3C): File.AppendAllText(path, "[errorMS]", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token: 0x" + buffer[i++].ToString("X2")); break;
+                                Console.WriteLine("Error Decompiling: Invalid token on index " + i + ": 0x" + buffer[i++].ToString("X2")); break;
                         }
                         break;
                     case 0x63:
-                        switch (buffer[i++])
+                        switch (buffer[++i])
                         {
                             case (0x00): File.AppendAllText(path, "ZXscl", Encoding.UTF8); break;
                             case (0x01): File.AppendAllText(path, "ZYscl", Encoding.UTF8); break;
@@ -877,11 +879,11 @@ namespace _8XDcs
                             case (0x36): File.AppendAllText(path, "Xres", Encoding.UTF8); break;
                             case (0x37): File.AppendAllText(path, "ZXres", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token: 0x" + buffer[i++].ToString("X2")); break;
+                                Console.WriteLine("Error Decompiling: Invalid token on index " + i + ": 0x" + buffer[i++].ToString("X2")); break;
                         }
                         break;
                     case 0x5E:
-                        switch (buffer[i++])
+                        switch (buffer[++i])
                         {
                             case (0x10): File.AppendAllText(path, "Y₁", Encoding.UTF8); break;
                             case (0x11): File.AppendAllText(path, "Y₂", Encoding.UTF8); break;
@@ -915,11 +917,11 @@ namespace _8XDcs
                             case (0x81): File.AppendAllText(path, "|v", Encoding.UTF8); break;
                             case (0x82): File.AppendAllText(path, "|w", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token: 0x" + buffer[i++].ToString("X2")); break;
+                                Console.WriteLine("Error Decompiling: Invalid token on index " + i + ": 0x" + buffer[i++].ToString("X2")); break;
                         }
                         break;
                     case 0x5D:
-                        switch (buffer[i++])
+                        switch (buffer[++i])
                         {
                             case (0x00): File.AppendAllText(path, "L₁", Encoding.UTF8); break;
                             case (0x01): File.AppendAllText(path, "L₂", Encoding.UTF8); break;
@@ -928,11 +930,11 @@ namespace _8XDcs
                             case (0x04): File.AppendAllText(path, "L₅", Encoding.UTF8); break;
                             case (0x05): File.AppendAllText(path, "L₆", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token: 0x" + buffer[i++].ToString("X2")); break;
+                                Console.WriteLine("Error Decompiling: Invalid token on index " + i + ": 0x" + buffer[i++].ToString("X2")); break;
                         }
                         break;
                     case 0x5C:
-                        switch (buffer[i++])
+                        switch (buffer[++i])
                         {
                             case (0x00): File.AppendAllText(path, "[A]", Encoding.UTF8); break;
                             case (0x01): File.AppendAllText(path, "[B]", Encoding.UTF8); break;
@@ -945,7 +947,7 @@ namespace _8XDcs
                             case (0x08): File.AppendAllText(path, "[I]", Encoding.UTF8); break;
                             case (0x09): File.AppendAllText(path, "[J]", Encoding.UTF8); break;
                             default:
-                                Console.WriteLine("Error Decompiling: Invalid token: 0x" + buffer[i++].ToString("X2")); break;
+                                Console.WriteLine("Error Decompiling: Invalid token on index " + i + ": 0x" + buffer[i++].ToString("X2")); break;
                         }
                         break;
                     default:
